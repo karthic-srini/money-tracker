@@ -23,6 +23,17 @@
 --f:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 --sb:env(safe-area-inset-bottom,0px)
 }
+html.dark{
+--bg:#0f1117;--sf:#1a1d27;--sf2:#232733;--sf3:#2c3040;
+--bd:#353a4a;--tx:#e8eaf0;--tx2:#9ca3b8;--tx3:#6b7394;
+--ac:#0f8b6e;--ac2:#0d7a5f;--acL:rgba(15,139,110,.15);
+--rd:#f87171;--rdL:rgba(248,113,113,.15);
+--bl:#60a5fa;--blL:rgba(96,165,250,.15);
+--or:#fbbf24;--orL:rgba(251,191,36,.15);
+--pu:#a78bfa;--puL:rgba(167,139,250,.15);
+--pk:#f472b6;--pkL:rgba(244,114,182,.15);
+--cy:#22d3ee;--cyL:rgba(34,211,238,.15)
+}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);-webkit-tap-highlight-color:transparent;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto;position:relative;background:var(--bg)}
@@ -174,13 +185,49 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 .card{background:var(--sf);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
 
 @media(min-width:501px){#app{border-left:1px solid var(--bd);border-right:1px solid var(--bd)}.md{border-radius:20px;margin-bottom:20px}}
+.cmp-row{background:var(--sf);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.cmp-cat{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.cmp-vals{display:flex;gap:8px}
+.cmp-col{flex:1;background:var(--sf2);border-radius:var(--rs);padding:10px;text-align:center}
+.cmp-col .cmp-lbl{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;margin-bottom:4px}
+.cmp-col .cmp-val{font-size:13px;font-weight:800}
+.cmp-diff{flex:0 0 auto;display:flex;align-items:center;justify-content:center;min-width:60px;font-size:11px;font-weight:700;border-radius:var(--rs);padding:4px 6px}
+.cmp-diff.up{background:rgba(231,76,60,.1);color:var(--rd)}
+.cmp-diff.down{background:rgba(15,139,110,.1);color:var(--ac)}
+.cmp-diff.same{background:var(--sf2);color:var(--tx3)}
+.cmp-diff.inc-up{background:rgba(15,139,110,.1);color:var(--ac)}
+.cmp-diff.inc-down{background:rgba(231,76,60,.1);color:var(--rd)}
+/* PIN */
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bd);transition:all .2s}
+.pin-dot.filled{background:var(--ac);border-color:var(--ac)}
+.pin-key{width:72px;height:56px;border-radius:14px;border:1.5px solid var(--bd);background:var(--sf);font-size:22px;font-weight:700;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;font-family:var(--f)}
+.pin-key:active{background:var(--sf2)}
+/* Global search */
+.gs-overlay{position:fixed;inset:0;background:var(--bg);z-index:90;display:none;flex-direction:column}
+.gs-overlay.op{display:flex}
+.gs-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--bd);background:var(--sf)}
+.gs-bar input{flex:1;background:var(--sf2);border:1.5px solid var(--bd);border-radius:var(--rs);padding:12px 14px;font-size:16px;color:var(--tx);font-family:var(--f);-webkit-appearance:none}
+.gs-bar input:focus{outline:none;border-color:var(--ac)}
+.gs-bar button{background:none;border:none;color:var(--tx2);font-size:16px;cursor:pointer;padding:8px;font-weight:700}
+.gs-results{flex:1;overflow-y:auto;padding:8px 16px;-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body>
+<div id="pinOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">
+<div style="font-size:48px;margin-bottom:16px">🔒</div>
+<div style="font-size:20px;font-weight:800;margin-bottom:8px">Money Tracker</div>
+<div style="font-size:14px;color:var(--tx3);margin-bottom:30px" id="pinMsg">Enter your 4-digit PIN</div>
+<div style="display:flex;gap:12px;margin-bottom:24px" id="pinDots">
+<div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+</div>
+<div id="pinError" style="font-size:13px;color:var(--rd);margin-bottom:16px;height:18px"></div>
+<div style="display:grid;grid-template-columns:repeat(3,72px);gap:10px;justify-content:center" id="pinPad"></div>
+</div>
 <div id="app">
 <div class="hdr">
 <h1>💰 Money<span>Tracker</span></h1>
 <div class="hdr-acts">
+<button class="btn-gear" onclick="openGlobalSearch()" style="font-size:15px">🔍</button>
 <button class="btn-bk" onclick="backupNow()">⬇ Backup</button>
 <button class="btn-gear" onclick="openSettings()">⚙</button>
 </div>
@@ -208,7 +255,23 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 
 <!-- DASHBOARD -->
 <div class="scr" id="sDash">
+<!-- Mode toggle: Month / Year / Compare -->
+<div class="tt" style="margin-bottom:14px" id="dashMode">
+<button class="tb ae" data-dm="month" onclick="setDashMode('month')">Month</button>
+<button class="tb" data-dm="year" onclick="setDashMode('year')">Year</button>
+<button class="tb" data-dm="compare" onclick="setDashMode('compare')">Compare</button>
+</div>
+<!-- Month/Year navigator -->
+<div id="dashNav">
 <div class="ms"><button class="mb" onclick="chMo(-1)">‹</button><div class="ml" id="dml"></div><button class="mb" onclick="chMo(1)">›</button></div>
+</div>
+<!-- Compare selectors -->
+<div id="dashCompare" style="display:none">
+<div class="fb" style="margin-bottom:6px">
+<select class="fs" id="cmpA" onchange="rD()"></select>
+<select class="fs" id="cmpB" onchange="rD()"></select>
+</div>
+</div>
 <div class="sg" id="dsg">
 <div class="sc"><div class="lb">Income</div><div class="vl inc" id="dI">£0.00</div></div>
 <div class="sc"><div class="lb">Expenses</div><div class="vl exp" id="dE">£0.00</div></div>
@@ -227,6 +290,9 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 <div class="fb">
 <select class="fs" id="tfC" onchange="rTx()"><option value="">All Categories</option></select>
 <input type="text" class="fi" id="tfS" placeholder="Search..." oninput="rTx()">
+</div>
+<div class="fb">
+<select class="fs" id="tfSort" onchange="rTx()"><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amt-desc">Highest Amount</option><option value="amt-asc">Lowest Amount</option><option value="cat-asc">Category A→Z</option></select>
 </div>
 <div id="tl"></div>
 </div>
@@ -276,6 +342,14 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 <button class="ni" data-s="sCat" onclick="sw('sCat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="9" r="5"/><circle cx="17" cy="17" r="5"/></svg>Categories</button>
 <button class="ni" data-s="sExp" onclick="sw('sExp')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
 </nav>
+</div>
+
+<div class="gs-overlay" id="gsOv">
+<div class="gs-bar">
+<input type="text" id="gsIn" placeholder="Search transactions..." oninput="gsSearch()">
+<button onclick="closeGlobalSearch()">Cancel</button>
+</div>
+<div class="gs-results" id="gsRes"></div>
 </div>
 
 <div class="mo" id="mOv" onclick="if(event.target===this)clM()"><div class="md" id="mCt"></div></div>
@@ -363,13 +437,19 @@ function updCurUI(){document.querySelectorAll('.cur-prefix').forEach(e=>e.textCo
 
 // ===== SETTINGS =====
 function openSettings(){
+const isDark=document.documentElement.classList.contains('dark');
 opM('<div class="mt">Settings<button class="mx" onclick="clM()">✕</button></div>'+
 '<div class="set-row"><div class="set-label">Currency</div><div class="set-val">'+
 Object.keys(CURS).map(k=>'<div class="set-chip'+(CUR.code===k?' sel':'')+'" onclick="setCur(\''+k+'\')">'+CURS[k].symbol+' '+k+'</div>').join('')+
 '</div></div>'+
+'<div class="set-row"><div class="set-label">Theme</div><div class="set-val">'+
+'<div class="set-chip'+(!isDark?' sel':'')+'" onclick="setTheme(\'light\')">☀️ Light</div>'+
+'<div class="set-chip'+(isDark?' sel':'')+'" onclick="setTheme(\'dark\')">🌙 Dark</div>'+
+'</div></div>'+
 '<div class="set-row"><div class="set-label">Backup Reminder</div><div class="set-val">'+
 [1,2,3,5,7].map(d=>'<div class="set-chip'+(BACKUP_DAYS===d?' sel':'')+'" onclick="setBkDays('+d+')">'+d+'d</div>').join('')+
 '</div></div>'+
+'<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">🔒 Security</p>'+(PIN_CODE?'<div style="display:flex;gap:8px"><button class="btn bs" onclick="clM();showPinSetup()">Change PIN</button><button class="btn bd" onclick="clM();removePin()">Remove PIN</button></div>':'<button class="btn bs" onclick="showPinSetup()">Set Up PIN Lock</button>')+'</div>'+
 '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">⚠️ Danger Zone</p><button class="btn bd" onclick="clM();clearAllTx()">🗑️ Clear All Transactions</button></div>'+
 '<p style="font-size:12px;color:var(--tx3);margin-top:16px">💡 <b>Tip:</b> To use on another device, go to Export tab → Full Backup (JSON), send the file to your other device, then Import it there.</p>'+
 '<p style="font-size:12px;color:var(--tx3);margin-top:8px">📱 <b>Tip:</b> Add this page to your home screen from your browser menu for app-like access!</p>'
@@ -379,6 +459,12 @@ document.querySelectorAll('.set-chip').forEach(c=>{c.classList.toggle('sel',c.te
 toast('Currency set to '+CUR.symbol+' '+CUR.code);
 // Re-render if on dashboard
 if(document.getElementById('sDash').classList.contains('act'))rD()}
+async function setTheme(t){
+document.documentElement.classList.toggle('dark',t==='dark');
+await dp('meta',{key:'theme',value:t});
+document.querySelectorAll('.set-val')[1].querySelectorAll('.set-chip').forEach(c=>{
+c.classList.toggle('sel',(t==='dark'&&c.textContent.includes('Dark'))||(t==='light'&&c.textContent.includes('Light')))});
+toast('Theme: '+(t==='dark'?'🌙 Dark':'☀️ Light'))}
 async function setBkDays(d){BACKUP_DAYS=d;await dp('meta',{key:'backupDays',value:d});
 document.querySelectorAll('.set-val')[1].querySelectorAll('.set-chip').forEach(c=>{c.classList.toggle('sel',c.textContent===d+'d')});
 toast('Reminder set to every '+d+' day'+(d!==1?'s':''));checkBackupReminder()}
@@ -406,16 +492,57 @@ async function lTx(){txs=await dga('transactions')}
 async function lAll(){await lCat();await lTx()}
 
 // ===== DASHBOARD =====
-function chMo(d){dM+=d;if(dM<0){dM=11;dY--}if(dM>11){dM=0;dY++}rD()}
+let dashMode='month'; // 'month', 'year', 'compare'
+
+function setDashMode(m){
+dashMode=m;
+document.querySelectorAll('#dashMode .tb').forEach(b=>{b.className='tb'+(b.dataset.dm===m?' ae':'')});
+document.getElementById('dashNav').style.display=m==='compare'?'none':'flex';
+document.getElementById('dashCompare').style.display=m==='compare'?'block':'none';
+if(m==='compare')populateCmpSelectors();
+rD()}
+
+function chMo(d){
+if(dashMode==='year'){dY+=d;rD();return}
+dM+=d;if(dM<0){dM=11;dY--}if(dM>11){dM=0;dY++}rD()}
+
+function populateCmpSelectors(){
+const mo=new Set();txs.forEach(t=>{const d=new Date(t.date);mo.add(d.getFullYear()+'-'+String(d.getMonth()).padStart(2,'0'))});
+const so=[...mo].sort().reverse();
+const opts=so.map(m=>{const[y,n]=m.split('-').map(Number);return'<option value="'+m+'">'+mS(n,y)+'</option>'}).join('');
+const a=document.getElementById('cmpA'),b=document.getElementById('cmpB');
+const av=a.value,bv=b.value;
+a.innerHTML=opts;b.innerHTML=opts;
+if(av&&so.includes(av))a.value=av;
+if(bv&&so.includes(bv))b.value=bv;
+else if(so.length>1)b.value=so[1]}
+
+function getFilteredTx(){
+if(dashMode==='month')return txs.filter(t=>{const d=new Date(t.date);return d.getMonth()===dM&&d.getFullYear()===dY});
+if(dashMode==='year')return txs.filter(t=>{const d=new Date(t.date);return d.getFullYear()===dY});
+return[]}
+
 function rD(){
-document.getElementById('dml').textContent=mL(dM,dY);
 document.getElementById('dDr').style.display='none';document.getElementById('dCh').style.display='block';document.getElementById('dsg').style.display='grid';
-const mt=txs.filter(t=>{const d=new Date(t.date);return d.getMonth()===dM&&d.getFullYear()===dY});
+
+if(dashMode==='compare'){rDCompare();return}
+
+// Restore standard summary cards if they were replaced by compare
+document.getElementById('dsg').innerHTML=
+'<div class="sc"><div class="lb">Income</div><div class="vl inc" id="dI">'+CUR.symbol+'0.00</div></div>'+
+'<div class="sc"><div class="lb">Expenses</div><div class="vl exp" id="dE">'+CUR.symbol+'0.00</div></div>'+
+'<div class="sc"><div class="lb">Net</div><div class="vl" id="dN">'+CUR.symbol+'0.00</div></div>';
+
+// Month or Year mode
+if(dashMode==='month')document.getElementById('dml').textContent=mL(dM,dY);
+else document.getElementById('dml').textContent='Year '+dY;
+
+const mt=getFilteredTx();
 const ti=mt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),te=mt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),n=ti-te;
 document.getElementById('dI').textContent=fC(ti);document.getElementById('dE').textContent=fC(te);
 const ne=document.getElementById('dN');if(n>=0){ne.textContent='+'+fC(n);ne.className='vl np'}else{ne.textContent='-'+fC(Math.abs(n));ne.className='vl nn'}
 const ch=document.getElementById('dCh');
-if(!mt.length){ch.innerHTML='<div class="es"><div class="ic">📊</div><p>No transactions this month</p></div>';return}
+if(!mt.length){ch.innerHTML='<div class="es"><div class="ic">📊</div><p>No transactions '+(dashMode==='month'?'this month':'this year')+'</p></div>';return}
 let h='';
 // Expense breakdown
 const ebc={};mt.filter(t=>t.type==='expense').forEach(t=>{ebc[t.categoryName]=(ebc[t.categoryName]||0)+t.amount});
@@ -433,8 +560,66 @@ ie.forEach(([nm,am])=>{const pct=((am/ti)*100).toFixed(1),cs=getCS(nm);
 h+='<div class="bk-card" onclick="drill(\'income\',\''+nm.replace(/'/g,"\\'")+'\')">'+'<div class="bk-inner"><div class="bk-icon" style="background:'+cs.bg+'">'+cs.icon+'</div><div class="bk-info"><div class="bk-top"><div class="bk-name">'+nm+'</div><div class="bk-pct">'+pct+'%</div></div><div class="bk-bar"><div class="bk-fill" style="width:'+pct+'%;background:'+cs.bar+'"></div></div><div class="bk-amt" style="color:var(--ac)">'+fC(am)+'</div></div></div></div>'})}
 ch.innerHTML=h}
 
+// ===== COMPARE MODE =====
+function rDCompare(){
+const va=document.getElementById('cmpA').value,vb=document.getElementById('cmpB').value;
+if(!va||!vb){document.getElementById('dCh').innerHTML='<div class="es"><p>Select two months to compare</p></div>';document.getElementById('dsg').style.display='none';return}
+const[ya,ma]=va.split('-').map(Number),[yb,mb]=vb.split('-').map(Number);
+const txA=txs.filter(t=>{const d=new Date(t.date);return d.getMonth()===ma&&d.getFullYear()===ya});
+const txB=txs.filter(t=>{const d=new Date(t.date);return d.getMonth()===mb&&d.getFullYear()===yb});
+const tiA=txA.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),teA=txA.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),nA=tiA-teA;
+const tiB=txB.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),teB=txB.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),nB=tiB-teB;
+const lA=mS(ma,ya),lB=mS(mb,yb);
+const nDiff=nB-nA;
+
+// Summary cards - in compare mode show label with currency, values smaller
+document.getElementById('dsg').innerHTML=
+'<div class="sc"><div class="lb">Income ('+CUR.symbol+')</div><div class="vl inc" style="font-size:13px">'+fC(tiA).slice(1)+' → '+fC(tiB).slice(1)+'</div></div>'+
+'<div class="sc"><div class="lb">Expenses ('+CUR.symbol+')</div><div class="vl exp" style="font-size:13px">'+fC(teA).slice(1)+' → '+fC(teB).slice(1)+'</div></div>'+
+'<div class="sc"><div class="lb">Net Diff</div><div class="vl '+(nDiff>=0?'np':'nn')+'" style="font-size:13px">'+(nDiff>=0?'↑':'↓')+' '+CUR.symbol+Math.abs(nDiff).toFixed(2)+'</div></div>';
+document.getElementById('dsg').style.display='grid';
+
+let h='';
+// Compare summary
+h+='<div class="cmp-row"><div class="cmp-cat">📊 Overall Summary</div><div class="cmp-vals"><div class="cmp-col"><div class="cmp-lbl">'+lA+'</div></div><div class="cmp-col"><div class="cmp-lbl">'+lB+'</div></div><div class="cmp-diff same" style="visibility:hidden">-</div></div>';
+h+='<div class="cmp-vals" style="margin-top:6px"><div class="cmp-col"><div class="cmp-lbl">Income</div><div class="cmp-val" style="color:var(--ac)">'+fC(tiA)+'</div></div><div class="cmp-col"><div class="cmp-lbl">Income</div><div class="cmp-val" style="color:var(--ac)">'+fC(tiB)+'</div></div>'+cmpDiffBadge(tiB-tiA,'income')+'</div>';
+h+='<div class="cmp-vals" style="margin-top:6px"><div class="cmp-col"><div class="cmp-lbl">Expenses</div><div class="cmp-val" style="color:var(--rd)">'+fC(teA)+'</div></div><div class="cmp-col"><div class="cmp-lbl">Expenses</div><div class="cmp-val" style="color:var(--rd)">'+fC(teB)+'</div></div>'+cmpDiffBadge(teB-teA,'expense')+'</div>';
+h+='<div class="cmp-vals" style="margin-top:6px"><div class="cmp-col"><div class="cmp-lbl">Net</div><div class="cmp-val">'+fC(nA)+'</div></div><div class="cmp-col"><div class="cmp-lbl">Net</div><div class="cmp-val">'+fC(nB)+'</div></div>'+cmpDiffBadge(nB-nA,'income')+'</div></div>';
+
+// Expense category comparison
+const allExpCats=new Set();txA.filter(t=>t.type==='expense').forEach(t=>allExpCats.add(t.categoryName));txB.filter(t=>t.type==='expense').forEach(t=>allExpCats.add(t.categoryName));
+if(allExpCats.size){
+h+='<div class="sec-t">Expense Comparison</div>';
+const catArr=[...allExpCats].sort((a,b)=>a.localeCompare(b));
+catArr.forEach(cn=>{const amA=txA.filter(t=>t.type==='expense'&&t.categoryName===cn).reduce((s,t)=>s+t.amount,0);
+const amB=txB.filter(t=>t.type==='expense'&&t.categoryName===cn).reduce((s,t)=>s+t.amount,0);
+const cs=getCS(cn);
+h+='<div class="cmp-row"><div class="cmp-cat">'+cs.icon+' '+cn+'</div><div class="cmp-vals"><div class="cmp-col"><div class="cmp-lbl">'+lA+'</div><div class="cmp-val" style="color:var(--rd)">'+fC(amA)+'</div></div><div class="cmp-col"><div class="cmp-lbl">'+lB+'</div><div class="cmp-val" style="color:var(--rd)">'+fC(amB)+'</div></div>'+cmpDiffBadge(amB-amA,'expense')+'</div></div>'})}
+
+// Income category comparison
+const allIncCats=new Set();txA.filter(t=>t.type==='income').forEach(t=>allIncCats.add(t.categoryName));txB.filter(t=>t.type==='income').forEach(t=>allIncCats.add(t.categoryName));
+if(allIncCats.size){
+h+='<div class="sec-t">Income Comparison</div>';
+const catArr=[...allIncCats].sort((a,b)=>a.localeCompare(b));
+catArr.forEach(cn=>{const amA=txA.filter(t=>t.type==='income'&&t.categoryName===cn).reduce((s,t)=>s+t.amount,0);
+const amB=txB.filter(t=>t.type==='income'&&t.categoryName===cn).reduce((s,t)=>s+t.amount,0);
+const cs=getCS(cn);
+h+='<div class="cmp-row"><div class="cmp-cat">'+cs.icon+' '+cn+'</div><div class="cmp-vals"><div class="cmp-col"><div class="cmp-lbl">'+lA+'</div><div class="cmp-val" style="color:var(--ac)">'+fC(amA)+'</div></div><div class="cmp-col"><div class="cmp-lbl">'+lB+'</div><div class="cmp-val" style="color:var(--ac)">'+fC(amB)+'</div></div>'+cmpDiffBadge(amB-amA,'income')+'</div></div>'})}
+
+document.getElementById('dCh').innerHTML=h}
+
+function cmpDiffBadge(diff,type){
+if(Math.abs(diff)<0.01)return'<div class="cmp-diff same">—</div>';
+const isExpense=type==='expense';
+// For expenses: up is bad (red), down is good (green)
+// For income: up is good (green), down is bad (red)
+if(diff>0){
+return'<div class="cmp-diff '+(isExpense?'up':'inc-up')+'">↑ '+fC(diff)+'</div>'}
+return'<div class="cmp-diff '+(isExpense?'down':'inc-down')+'">↓ '+fC(Math.abs(diff))+'</div>'}
+
 function drill(tp,cn){
-const mt=txs.filter(t=>{const d=new Date(t.date);return d.getMonth()===dM&&d.getFullYear()===dY&&t.type===tp&&t.categoryName===cn}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+const mt=dashMode==='year'?txs.filter(t=>{const d=new Date(t.date);return d.getFullYear()===dY&&t.type===tp&&t.categoryName===cn}):txs.filter(t=>{const d=new Date(t.date);return d.getMonth()===dM&&d.getFullYear()===dY&&t.type===tp&&t.categoryName===cn});
+mt.sort((a,b)=>new Date(b.date)-new Date(a.date));
 const tot=mt.reduce((s,t)=>s+t.amount,0),cs=getCS(cn),dv=document.getElementById('dDr');
 dv.style.display='block';document.getElementById('dCh').style.display='none';document.getElementById('dsg').style.display='none';
 let h='<div class="dh"><button class="dbk" onclick="clDr()">‹</button><div><div class="dtt">'+cs.icon+' '+cn+'</div><div class="dtl">'+mt.length+' transaction'+(mt.length!==1?'s':'')+' · '+fC(tot)+'</div></div></div>';
@@ -448,7 +633,13 @@ function rTx(){pTF();
 const mv=document.getElementById('tfM').value,tv=document.getElementById('tfT').value,cv=document.getElementById('tfC').value,sv=document.getElementById('tfS').value.toLowerCase().trim();
 let f=[...txs];if(mv){const[y,m]=mv.split('-').map(Number);f=f.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y})}
 if(tv)f=f.filter(t=>t.type===tv);if(cv)f=f.filter(t=>t.categoryId===cv);if(sv)f=f.filter(t=>(t.merchant&&t.merchant.toLowerCase().includes(sv))||(t.notes&&t.notes.toLowerCase().includes(sv))||(t.categoryName&&t.categoryName.toLowerCase().includes(sv)));
-f.sort((a,b)=>new Date(b.date)-new Date(a.date));const d=document.getElementById('tl');
+const so=document.getElementById('tfSort').value;
+if(so==='date-desc')f.sort((a,b)=>new Date(b.date)-new Date(a.date));
+else if(so==='date-asc')f.sort((a,b)=>new Date(a.date)-new Date(b.date));
+else if(so==='amt-desc')f.sort((a,b)=>b.amount-a.amount);
+else if(so==='amt-asc')f.sort((a,b)=>a.amount-b.amount);
+else if(so==='cat-asc')f.sort((a,b)=>a.categoryName.localeCompare(b.categoryName));
+const d=document.getElementById('tl');
 if(!f.length){d.innerHTML='<div class="es"><div class="ic">📋</div><p>No transactions found</p></div>';return}
 d.innerHTML=f.map(t=>{const cs=getCS(t.categoryName);return'<div class="txr" onclick="opET(\''+t.id+'\')"><div class="txi '+t.type+'">'+(t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+t.categoryName+(t.subcategory?' › '+t.subcategory:'')+'</div><div class="txm">'+fDUK(t.date)+(t.merchant?' · '+t.merchant:'')+'</div></div><div class="txa '+t.type+'">'+(t.type==='expense'?'-':'+')+fC(t.amount)+'</div></div>'}).join('')}
 function pTF(){const ms=document.getElementById('tfM'),cv=ms.value,mo=new Set();txs.forEach(t=>{const d=new Date(t.date);mo.add(d.getFullYear()+'-'+d.getMonth())});const so=[...mo].sort().reverse();ms.innerHTML='<option value="">All Months</option>'+so.map(m=>{const[y,n]=m.split('-').map(Number);return'<option value="'+m+'">'+mS(n,y)+'</option>'}).join('');if(cv&&so.includes(cv))ms.value=cv;
@@ -468,7 +659,8 @@ opM('<div class="mt">Edit Transaction<button class="mx" onclick="clM()">✕</but
 '<div class="fg"><label class="fl">Subcategory</label><select class="fs" id="eSub"><option value="">None</option>'+so+'</select></div>'+
 '<div class="fg"><label class="fl">Merchant</label><input type="text" class="fi" id="eMer" value="'+(t.merchant||'').replace(/"/g,'&quot;')+'"></div>'+
 '<div class="fg"><label class="fl">Notes</label><textarea class="ft" id="eNot">'+(t.notes||'')+'</textarea></div>'+
-'<div style="display:flex;gap:10px"><button class="btn bp" onclick="upTx(\''+t.id+'\')">Update</button><button class="btn bd" onclick="dlTx(\''+t.id+'\')">Delete</button></div>')}
+'<div style="display:flex;gap:10px"><button class="btn bp" onclick="upTx(\''+t.id+'\')">Update</button><button class="btn bd" onclick="dlTx(\''+t.id+'\')">Delete</button></div>'+
+'<button class="btn bs" style="margin-top:10px" onclick="dupTx(\''+t.id+'\')">📋 Duplicate with Today\'s Date</button>')}
 function etp(tp){_et=tp;const bs=document.querySelectorAll('#mCt .tt .tb');bs.forEach(b=>{b.className='tb';if(b.textContent.trim().toLowerCase()===tp)b.className='tb '+(tp==='expense'?'ae':'ai')});
 const s=document.getElementById('eCat');s.innerHTML=cats.filter(c=>c.type===tp).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');eCC()}
 function eCC(){const ci=document.getElementById('eCat').value,c=cats.find(x=>x.id===ci),s=document.getElementById('eSub');s.innerHTML='<option value="">None</option>'+(c&&c.subs?[...c.subs].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+x+'">'+x+'</option>').join(''):'')}
@@ -478,7 +670,38 @@ if(!amt||amt<=0){toast('Enter valid amount');return}if(!dt){toast('Select a date
 const cat=cats.find(c=>c.id===ci),ex=txs.find(t=>t.id===id);
 const tx={id,type:_et,amount:Math.round(amt*100)/100,date:dt,categoryId:ci,categoryName:cat?cat.name:'',subcategory:sub,merchant:mer,notes:not,createdAt:ex?ex.createdAt:Date.now(),updatedAt:Date.now()};
 await dp('transactions',tx);await lTx();clM();toast('Updated!');rD();rTx()}
-async function dlTx(id){clM();sCf('Delete Transaction','Are you sure you want to delete this transaction?',async()=>{await ddl('transactions',id);await lTx();toast('Deleted');rD();rTx()})}
+async function dlTx(id){clM();
+const tx=txs.find(t=>t.id===id);if(!tx)return;
+sCf('Delete Transaction','Are you sure you want to delete this transaction?',async()=>{
+const backup=JSON.parse(JSON.stringify(tx));
+await ddl('transactions',id);await lTx();rD();rTx();
+showUndoToast('Transaction deleted',async()=>{await dp('transactions',backup);await lTx();rD();rTx();toast('Restored!')})})}
+
+let _undoTimer=null;
+function showUndoToast(msg,undoFn){
+const t=document.getElementById('tst');
+t.innerHTML=msg+' <span onclick="event.stopPropagation()" style="margin-left:12px;text-decoration:underline;cursor:pointer" id="undoBtn">Undo</span>';
+t.classList.add('sh');
+if(_undoTimer)clearTimeout(_undoTimer);
+_undoTimer=setTimeout(()=>{t.classList.remove('sh');t.innerHTML=''},5000);
+setTimeout(()=>{const btn=document.getElementById('undoBtn');if(btn)btn.onclick=()=>{clearTimeout(_undoTimer);t.classList.remove('sh');t.innerHTML='';undoFn()}},50)}
+
+async function dupTx(id){
+const t=txs.find(x=>x.id===id);if(!t)return;
+clM();
+// Pre-fill the Add form with duplicated data and today's date
+cAT=t.type;setAT(t.type);
+document.getElementById('aAmt').value=t.amount;
+document.getElementById('aDt').value=tISO();
+// Set category
+const catSel=document.getElementById('aCat');catSel.value=t.categoryId;popSub();
+// Set subcategory
+if(t.subcategory)document.getElementById('aSub').value=t.subcategory;
+document.getElementById('aMer').value=t.merchant||'';
+document.getElementById('aNot').value=t.notes||'';
+// Switch to Add screen
+sw('sAdd');
+toast('Review and tap Save')}
 
 // ===== CATEGORIES =====
 let catView='list'; // 'list' or 'detail'
@@ -514,7 +737,7 @@ h+='<div style="display:flex;gap:8px;margin-bottom:14px"><input type="text" clas
 if(c.subs&&c.subs.length){
 c.subs.forEach(s=>{
 const stc=txs.filter(t=>t.categoryId===c.id&&t.subcategory===s).length;
-h+='<div class="csi" style="cursor:default"><div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:600;font-size:14px">'+s+'</div><div style="font-size:11px;color:var(--tx3);margin-top:1px">'+stc+' transaction'+(stc!==1?'s':'')+'</div></div><button class="cab dl" onclick="dlSub(\''+c.id+'\',\''+s.replace(/'/g,"\\'")+'\')">✕</button></div></div>'});
+h+='<div class="csi" style="cursor:default"><div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:600;font-size:14px">'+s+'</div><div style="font-size:11px;color:var(--tx3);margin-top:1px">'+stc+' transaction'+(stc!==1?'s':'')+'</div></div><div style="display:flex;gap:8px"><button class="cab" onclick="editSub(\''+c.id+'\',\''+s.replace(/'/g,"\\'")+'\')">✏️</button><button class="cab dl" onclick="dlSub(\''+c.id+'\',\''+s.replace(/'/g,"\\'")+'\')">✕</button></div></div></div>'});
 }else{
 h+='<div class="es" style="padding:24px"><p style="font-size:13px">No subcategories yet. Add one above.</p></div>'}
 d.innerHTML=h;
@@ -538,6 +761,26 @@ if(tc>0){const oc=cats.filter(x=>x.type===c.type&&x.id!==id);if(!oc.length){toas
 else sCf('Delete Category','Delete "'+c.name+'"?',async()=>{await ddl('categories',id);await lCat();catView='list';catDetailId=null;rCat();pAC();toast('Deleted')})}
 async function raD(oid){const nid=document.getElementById('raC').value,nc=cats.find(c=>c.id===nid);if(!nc)return;const af=txs.filter(t=>t.categoryId===oid);for(const t of af){t.categoryId=nid;t.categoryName=nc.name;t.subcategory='';await dp('transactions',t)}await ddl('categories',oid);await lAll();clM();catView='list';catDetailId=null;rCat();toast('Reassigned & deleted')}
 async function dlSub(ci,sn){sCf('Remove Subcategory','Remove "'+sn+'"?',async()=>{const c=cats.find(x=>x.id===ci);if(!c)return;c.subs=(c.subs||[]).filter(s=>s!==sn);await dp('categories',c);await lCat();rCatDetail();toast('Removed')})}
+
+function editSub(ci,oldName){
+opM('<div class="mt">Edit Subcategory<button class="mx" onclick="clM()">✕</button></div>'+
+'<div class="fg"><label class="fl">Name</label><input type="text" class="fi" id="editSubN" value="'+oldName.replace(/"/g,'&quot;')+'"></div>'+
+'<button class="btn bp" onclick="saveEditSub(\''+ci+'\',\''+oldName.replace(/'/g,"\\'")+'\')">Update</button>');
+setTimeout(()=>{const e=document.getElementById('editSubN');if(e){e.focus();e.select();e.onkeydown=ev=>{if(ev.key==='Enter')saveEditSub(ci,oldName)}}},300)}
+
+async function saveEditSub(ci,oldName){
+const nm=document.getElementById('editSubN').value.trim();
+if(!nm){toast('Enter a name');return}
+const c=cats.find(x=>x.id===ci);if(!c)return;
+if(nm!==oldName&&c.subs&&c.subs.includes(nm)){toast('Already exists');return}
+// Update category subs
+c.subs=(c.subs||[]).map(s=>s===oldName?nm:s);
+await dp('categories',c);
+// Update all transactions that used the old subcategory name
+const affected=txs.filter(t=>t.categoryId===ci&&t.subcategory===oldName);
+for(const t of affected){t.subcategory=nm;await dp('transactions',t)}
+await lAll();clM();rCatDetail();pAC();
+toast('Subcategory renamed!')}
 
 // ===== EXPORT =====
 function togED(){const v=document.getElementById('eR').value;document.getElementById('eMW').style.display=v==='month'?'block':'none';document.getElementById('eCW').style.display=v==='custom'?'block':'none'}
@@ -622,11 +865,86 @@ await lAll();toast(count+' transactions imported!');ev.target.value=''}
 function pCSVLine(l){const r=[];let cur='',inQ=false;for(let i=0;i<l.length;i++){const c=l[i];if(c==='"'){if(inQ&&l[i+1]==='"'){cur+='"';i++}else inQ=!inQ}else if(c===','&&!inQ){r.push(cur);cur=''}else cur+=c}r.push(cur);return r}
 function parseDateUK(s){if(!s)return null;let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m){const dd=parseInt(m[1]),mm=parseInt(m[2]),yy=parseInt(m[3]);if(mm>=1&&mm<=12&&dd>=1&&dd<=31)return yy+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0')}m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return s;return null}
 
+// ===== GLOBAL SEARCH =====
+function openGlobalSearch(){
+document.getElementById('gsOv').classList.add('op');
+const inp=document.getElementById('gsIn');inp.value='';inp.focus();
+document.getElementById('gsRes').innerHTML='<div class="es"><p style="font-size:13px">Start typing to search across all transactions</p></div>'}
+function closeGlobalSearch(){document.getElementById('gsOv').classList.remove('op')}
+function gsSearch(){
+const q=document.getElementById('gsIn').value.toLowerCase().trim(),d=document.getElementById('gsRes');
+if(!q){d.innerHTML='<div class="es"><p style="font-size:13px">Start typing to search across all transactions</p></div>';return}
+const f=txs.filter(t=>
+(t.merchant&&t.merchant.toLowerCase().includes(q))||
+(t.notes&&t.notes.toLowerCase().includes(q))||
+(t.categoryName&&t.categoryName.toLowerCase().includes(q))||
+(t.subcategory&&t.subcategory.toLowerCase().includes(q))||
+(t.amount&&t.amount.toFixed(2).includes(q))||
+(fDUK(t.date).includes(q))
+).sort((a,b)=>new Date(b.date)-new Date(a.date));
+if(!f.length){d.innerHTML='<div class="es"><div class="ic">🔍</div><p>No results for "'+q+'"</p></div>';return}
+d.innerHTML='<div style="font-size:12px;color:var(--tx3);margin:8px 0">'+f.length+' result'+(f.length!==1?'s':'')+'</div>'+f.map(t=>'<div class="txr" onclick="closeGlobalSearch();opET(\''+t.id+'\')"><div class="txi '+t.type+'">'+(t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+t.categoryName+(t.subcategory?' › '+t.subcategory:'')+'</div><div class="txm">'+fDUK(t.date)+(t.merchant?' · '+t.merchant:'')+(t.notes?' · '+t.notes:'')+'</div></div><div class="txa '+t.type+'">'+(t.type==='expense'?'-':'+')+fC(t.amount)+'</div></div>').join('')}
+
+// ===== PIN LOCK =====
+let PIN_CODE=null;
+let _pinInput='';
+let _pinMode='unlock'; // 'unlock','setup','confirm','change'
+let _pinSetupVal='';
+
+function buildPinPad(){
+const pad=document.getElementById('pinPad');
+let h='';
+[1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(k=>{
+if(k==='')h+='<div></div>';
+else h+='<button class="pin-key" onclick="pinKey(\''+k+'\')">'+k+'</button>'});
+pad.innerHTML=h}
+
+function pinKey(k){
+if(k==='⌫'){_pinInput=_pinInput.slice(0,-1);updPinDots();return}
+if(_pinInput.length>=4)return;
+_pinInput+=k;
+updPinDots();
+if(_pinInput.length===4)setTimeout(()=>pinSubmit(),200)}
+
+function updPinDots(){
+document.querySelectorAll('.pin-dot').forEach((d,i)=>{d.classList.toggle('filled',i<_pinInput.length)})}
+
+function pinSubmit(){
+if(_pinMode==='unlock'){
+if(_pinInput===PIN_CODE){document.getElementById('pinOverlay').style.display='none';_pinInput='';updPinDots()}
+else{document.getElementById('pinError').textContent='Wrong PIN. Try again.';_pinInput='';updPinDots();document.getElementById('pinOverlay').style.animation='none';document.getElementById('pinOverlay').offsetHeight;}}
+else if(_pinMode==='setup'){
+_pinSetupVal=_pinInput;_pinInput='';updPinDots();_pinMode='confirm';
+document.getElementById('pinMsg').textContent='Confirm your 4-digit PIN';document.getElementById('pinError').textContent=''}
+else if(_pinMode==='confirm'){
+if(_pinInput===_pinSetupVal){PIN_CODE=_pinInput;dp('meta',{key:'pin',value:PIN_CODE});
+document.getElementById('pinOverlay').style.display='none';_pinInput='';updPinDots();toast('PIN set! App will lock on next open.')}
+else{document.getElementById('pinError').textContent='PINs don\'t match. Try again.';_pinInput='';_pinMode='setup';_pinSetupVal='';updPinDots();
+document.getElementById('pinMsg').textContent='Enter a new 4-digit PIN'}}}
+
+function showPinSetup(){
+clM();_pinMode='setup';_pinInput='';_pinSetupVal='';
+document.getElementById('pinMsg').textContent='Choose a 4-digit PIN';
+document.getElementById('pinError').textContent='';
+updPinDots();buildPinPad();
+document.getElementById('pinOverlay').style.display='flex'}
+
+function removePin(){
+sCf('Remove PIN','Remove PIN lock from the app?',async()=>{PIN_CODE=null;await ddl('meta','pin');toast('PIN removed')})}
+
 // ===== INIT =====
 async function init(){
 await odb();
+// Load PIN
+try{const m=await dg('meta','pin');if(m&&m.value){PIN_CODE=m.value;_pinMode='unlock';_pinInput='';
+document.getElementById('pinMsg').textContent='Enter your 4-digit PIN';
+document.getElementById('pinError').textContent='';
+updPinDots();buildPinPad();
+document.getElementById('pinOverlay').style.display='flex'}}catch(e){}
 // Load currency setting
 try{const m=await dg('meta','currency');if(m&&m.value&&CURS[m.value])CUR=CURS[m.value]}catch(e){}
+// Load theme
+try{const m=await dg('meta','theme');if(m&&m.value==='dark')document.documentElement.classList.add('dark')}catch(e){}
 await lAll();
 if(!cats.length){for(const c of DCAT)await dp('categories',c);await lCat()}
 document.getElementById('aDt').value=tISO();updCurUI();pAC();await loadBackupSettings();checkBackupReminder()}
