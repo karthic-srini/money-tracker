@@ -229,8 +229,8 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 <div class="hdr">
 <h1>💰 Money<span>Tracker</span></h1>
 <div class="hdr-acts">
+<button class="btn-gear" id="eyeBtn" onclick="toggleMask()" style="font-size:15px">🙈</button>
 <button class="btn-gear" onclick="openGlobalSearch()" style="font-size:15px">🔍</button>
-<button class="btn-bk" onclick="backupNow()">⬇ Backup</button>
 <button class="btn-gear" onclick="openSettings()">⚙</button>
 </div>
 </div>
@@ -423,8 +423,15 @@ function ddl(s,id){return new Promise((r,j)=>{const q=ds(s,'readwrite').delete(i
 function dg(s,k){return new Promise((r,j)=>{const q=ds(s,'readonly').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})}
 
 // ===== HELPERS =====
+let _masked=true;
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,9)}
-function fC(n){const v=parseFloat(n)||0;return CUR.symbol+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function fC(n){const v=parseFloat(n)||0;if(_masked)return CUR.symbol+'•••••';return CUR.symbol+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function toggleMask(){_masked=!_masked;document.getElementById('eyeBtn').textContent=_masked?'🙈':'👁';
+// Re-render current screen
+const act=document.querySelector('.scr.act');
+if(act&&act.id==='sDash')rD();
+if(act&&act.id==='sTx')rTx();
+}
 function fDUK(s){if(!s)return'';const d=new Date(s);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
 function fDF(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear()}
 function tISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
