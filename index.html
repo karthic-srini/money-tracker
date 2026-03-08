@@ -212,6 +212,9 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 .gs-bar input:focus{outline:none;border-color:var(--ac)}
 .gs-bar button{background:none;border:none;color:var(--tx2);font-size:16px;cursor:pointer;padding:8px;font-weight:700}
 .gs-results{flex:1;overflow-y:auto;padding:8px 16px;-webkit-overflow-scrolling:touch}
+/* Floating Action Button */
+.fab{position:fixed;bottom:calc(70px + var(--sb));right:20px;width:56px;height:56px;border-radius:50%;background:var(--ac);color:#fff;border:none;font-size:28px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(15,139,110,.4);z-index:50;transition:transform .15s}
+.fab:active{transform:scale(.9)}
 </style>
 </head>
 <body>
@@ -240,23 +243,10 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 <div style="background:#dc2626;color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">Backup Now</div>
 </div>
 
-<!-- ADD -->
-<div class="scr act" id="sAdd">
-<div class="fg"><div class="tt" id="atg">
-<button class="tb ae" data-t="expense" onclick="setAT('expense')">Expense</button>
-<button class="tb" data-t="income" onclick="setAT('income')">Income</button>
-</div></div>
-<div class="fg"><label class="fl">Amount</label><div class="aw"><span class="cur-prefix" id="curPfx">£</span><input type="number" class="fi" id="aAmt" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal"></div></div>
-<div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="aDt"></div>
-<div class="fg"><label class="fl">Category</label><select class="fs" id="aCat" onchange="popSub()"><option value="">Select category</option></select></div>
-<div class="fg"><label class="fl">Subcategory</label><select class="fs" id="aSub"><option value="">None</option></select></div>
-<div class="fg"><label class="fl">Merchant / Payee (optional)</label><input type="text" class="fi" id="aMer" placeholder="e.g. Tesco, Netflix"></div>
-<div class="fg"><label class="fl">Notes (optional)</label><textarea class="ft" id="aNot" rows="2" placeholder="Any notes..."></textarea></div>
-<button class="btn bp" onclick="saveTx()">Save Transaction</button>
-</div>
+<!-- ADD screen removed - now uses floating button + modal -->
 
 <!-- DASHBOARD -->
-<div class="scr" id="sDash">
+<div class="scr act" id="sDash">
 <!-- Mode toggle: Month / Year / Compare -->
 <div class="tt" style="margin-bottom:14px" id="dashMode">
 <button class="tb ae" data-dm="month" onclick="setDashMode('month')">Month</button>
@@ -337,9 +327,9 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 </div>
 
 </div>
+<button class="fab" onclick="openAddModal()">+</button>
 <nav class="bnav">
-<button class="ni act" data-s="sAdd" onclick="sw('sAdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add</button>
-<button class="ni" data-s="sDash" onclick="sw('sDash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="13" width="4" height="7" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>Dashboard</button>
+<button class="ni act" data-s="sDash" onclick="sw('sDash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="13" width="4" height="7" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>Dashboard</button>
 <button class="ni" data-s="sTx" onclick="sw('sTx')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="16" y2="18"/></svg>History</button>
 <button class="ni" data-s="sCat" onclick="sw('sCat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="9" r="5"/><circle cx="17" cy="17" r="5"/></svg>Categories</button>
 <button class="ni" data-s="sExp" onclick="sw('sExp')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
@@ -483,17 +473,31 @@ function clearAllTx(){sCf('Clear All Transactions','This will permanently delete
 function sw(id){document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('act',s.id===id));document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('act',n.dataset.s===id));document.getElementById('mc').scrollTop=0;if(id==='sDash')rD();if(id==='sTx')rTx();if(id==='sCat')rCat();if(id==='sExp')pEM()}
 
 // ===== ADD =====
+function openAddModal(prefill){
+const p=prefill||{};
+const selType=p.type||cAT;
+cAT=selType;
+opM('<div class="mt">Add Transaction<button class="mx" onclick="clM()">✕</button></div>'+
+'<div class="fg"><div class="tt" id="atg"><button class="tb'+(selType==='expense'?' ae':'')+'" data-t="expense" onclick="setAT(\'expense\')">Expense</button><button class="tb'+(selType==='income'?' ai':'')+'" data-t="income" onclick="setAT(\'income\')">Income</button></div></div>'+
+'<div class="fg"><label class="fl">Amount</label><div class="aw"><span class="cur-prefix">'+CUR.symbol+'</span><input type="number" class="fi" id="aAmt" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal" value="'+(p.amount||'')+'"></div></div>'+
+'<div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="aDt" value="'+(p.date||tISO())+'"></div>'+
+'<div class="fg"><label class="fl">Category</label><select class="fs" id="aCat" onchange="popSub()"><option value="">Select category</option></select></div>'+
+'<div class="fg"><label class="fl">Subcategory</label><select class="fs" id="aSub"><option value="">None</option></select></div>'+
+'<div class="fg"><label class="fl">Merchant / Payee (optional)</label><input type="text" class="fi" id="aMer" placeholder="e.g. Tesco, Netflix" value="'+(p.merchant||'').replace(/"/g,'&quot;')+'"></div>'+
+'<div class="fg"><label class="fl">Notes (optional)</label><textarea class="ft" id="aNot" rows="2" placeholder="Any notes...">'+(p.notes||'')+'</textarea></div>'+
+'<button class="btn bp" onclick="saveTx()">Save Transaction</button>');
+setTimeout(()=>{pAC();if(p.categoryId){document.getElementById('aCat').value=p.categoryId;popSub();if(p.subcategory)document.getElementById('aSub').value=p.subcategory}},50)}
+
 function setAT(t){cAT=t;document.querySelectorAll('#atg .tb').forEach(b=>{b.className='tb'+(b.dataset.t===t?(t==='expense'?' ae':' ai'):'')});pAC()}
-function pAC(){const s=document.getElementById('aCat'),f=cats.filter(c=>c.type===cAT).sort((a,b)=>a.name.localeCompare(b.name));s.innerHTML='<option value="">Select category</option>'+f.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');if(luC&&f.find(c=>c.id===luC))s.value=luC;popSub()}
-function popSub(){const ci=document.getElementById('aCat').value,s=document.getElementById('aSub'),c=cats.find(x=>x.id===ci);if(c&&c.subs&&c.subs.length)s.innerHTML='<option value="">None</option>'+[...c.subs].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+x+'">'+x+'</option>').join('');else s.innerHTML='<option value="">None</option>';if(luS&&c&&c.subs&&c.subs.includes(luS))s.value=luS}
+function pAC(){const s=document.getElementById('aCat');if(!s)return;const f=cats.filter(c=>c.type===cAT).sort((a,b)=>a.name.localeCompare(b.name));s.innerHTML='<option value="">Select category</option>'+f.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');if(luC&&f.find(c=>c.id===luC))s.value=luC;popSub()}
+function popSub(){const sel=document.getElementById('aCat');if(!sel)return;const ci=sel.value,s=document.getElementById('aSub'),c=cats.find(x=>x.id===ci);if(c&&c.subs&&c.subs.length)s.innerHTML='<option value="">None</option>'+[...c.subs].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+x+'">'+x+'</option>').join('');else s.innerHTML='<option value="">None</option>';if(luS&&c&&c.subs&&c.subs.includes(luS))s.value=luS}
 async function saveTx(eid){
 const amt=parseFloat(document.getElementById('aAmt').value),dt=document.getElementById('aDt').value,ci=document.getElementById('aCat').value,sub=document.getElementById('aSub').value,mer=document.getElementById('aMer').value.trim(),not=document.getElementById('aNot').value.trim();
 if(!amt||amt<=0){toast('Enter a valid amount');return}if(!dt){toast('Select a date');return}if(!ci){toast('Select a category');return}
 const cat=cats.find(c=>c.id===ci);const tx={id:eid||uid(),type:cAT,amount:Math.round(amt*100)/100,date:dt,categoryId:ci,categoryName:cat?cat.name:'',subcategory:sub,merchant:mer,notes:not,updatedAt:Date.now()};
 if(eid){const ex=txs.find(t=>t.id===eid);if(ex)tx.createdAt=ex.createdAt}else tx.createdAt=Date.now();
 await dp('transactions',tx);await lTx();luC=ci;luS=sub;
-document.getElementById('aAmt').value='';document.getElementById('aDt').value=tISO();document.getElementById('aMer').value='';document.getElementById('aNot').value='';pAC();
-toast(eid?'Updated!':'Saved!');if(eid)clM()}
+clM();toast(eid?'Updated!':'Saved!');rD();rTx()}
 
 // ===== LOAD =====
 async function lCat(){cats=await dga('categories')}
@@ -697,18 +701,7 @@ setTimeout(()=>{const btn=document.getElementById('undoBtn');if(btn)btn.onclick=
 async function dupTx(id){
 const t=txs.find(x=>x.id===id);if(!t)return;
 clM();
-// Pre-fill the Add form with duplicated data and today's date
-cAT=t.type;setAT(t.type);
-document.getElementById('aAmt').value=t.amount;
-document.getElementById('aDt').value=tISO();
-// Set category
-const catSel=document.getElementById('aCat');catSel.value=t.categoryId;popSub();
-// Set subcategory
-if(t.subcategory)document.getElementById('aSub').value=t.subcategory;
-document.getElementById('aMer').value=t.merchant||'';
-document.getElementById('aNot').value=t.notes||'';
-// Switch to Add screen
-sw('sAdd');
+openAddModal({type:t.type,amount:t.amount,date:tISO(),categoryId:t.categoryId,subcategory:t.subcategory,merchant:t.merchant,notes:t.notes});
 toast('Review and tap Save')}
 
 // ===== CATEGORIES =====
@@ -955,7 +948,7 @@ try{const m=await dg('meta','currency');if(m&&m.value&&CURS[m.value])CUR=CURS[m.
 try{const m=await dg('meta','theme');if(m&&m.value==='dark')document.documentElement.classList.add('dark')}catch(e){}
 await lAll();
 if(!cats.length){for(const c of DCAT)await dp('categories',c);await lCat()}
-document.getElementById('aDt').value=tISO();updCurUI();pAC();await loadBackupSettings();checkBackupReminder()}
+updCurUI();await loadBackupSettings();checkBackupReminder();rD()}
 init().catch(e=>console.error('Init error:',e));
 </script>
 </body>
