@@ -479,7 +479,7 @@ const selType=p.type||cAT;
 cAT=selType;
 opM('<div class="mt">Add Transaction<button class="mx" onclick="clM()">✕</button></div>'+
 '<div class="fg"><div class="tt" id="atg"><button class="tb'+(selType==='expense'?' ae':'')+'" data-t="expense" onclick="setAT(\'expense\')">Expense</button><button class="tb'+(selType==='income'?' ai':'')+'" data-t="income" onclick="setAT(\'income\')">Income</button></div></div>'+
-'<div class="fg"><label class="fl">Amount</label><div class="aw"><span class="cur-prefix">'+CUR.symbol+'</span><input type="number" class="fi" id="aAmt" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal" value="'+(p.amount||'')+'"></div></div>'+
+'<div class="fg"><label class="fl">Amount</label><div class="aw"><span class="cur-prefix">'+CUR.symbol+'</span><input type="number" class="fi" id="aAmt" placeholder="0.00" step="0.01" inputmode="decimal" value="'+(p.amount||'')+'"></div><div style="font-size:11px;color:var(--tx3);margin-top:4px">Use negative for reimbursements (e.g. -50)</div></div>'+
 '<div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="aDt" value="'+(p.date||tISO())+'"></div>'+
 '<div class="fg"><label class="fl">Category</label><select class="fs" id="aCat" onchange="popSub()"><option value="">Select category</option></select></div>'+
 '<div class="fg"><label class="fl">Subcategory</label><select class="fs" id="aSub"><option value="">None</option></select></div>'+
@@ -493,7 +493,7 @@ function pAC(){const s=document.getElementById('aCat');if(!s)return;const f=cats
 function popSub(){const sel=document.getElementById('aCat');if(!sel)return;const ci=sel.value,s=document.getElementById('aSub'),c=cats.find(x=>x.id===ci);if(c&&c.subs&&c.subs.length)s.innerHTML='<option value="">None</option>'+[...c.subs].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+x+'">'+x+'</option>').join('');else s.innerHTML='<option value="">None</option>';if(luS&&c&&c.subs&&c.subs.includes(luS))s.value=luS}
 async function saveTx(eid){
 const amt=parseFloat(document.getElementById('aAmt').value),dt=document.getElementById('aDt').value,ci=document.getElementById('aCat').value,sub=document.getElementById('aSub').value,mer=document.getElementById('aMer').value.trim(),not=document.getElementById('aNot').value.trim();
-if(!amt||amt<=0){toast('Enter a valid amount');return}if(!dt){toast('Select a date');return}if(!ci){toast('Select a category');return}
+if(!amt||amt===0){toast('Enter a valid amount');return}if(!dt){toast('Select a date');return}if(!ci){toast('Select a category');return}
 const cat=cats.find(c=>c.id===ci);const tx={id:eid||uid(),type:cAT,amount:Math.round(amt*100)/100,date:dt,categoryId:ci,categoryName:cat?cat.name:'',subcategory:sub,merchant:mer,notes:not,updatedAt:Date.now()};
 if(eid){const ex=txs.find(t=>t.id===eid);if(ex)tx.createdAt=ex.createdAt}else tx.createdAt=Date.now();
 await dp('transactions',tx);await lTx();luC=ci;luS=sub;
@@ -636,7 +636,7 @@ const tot=mt.reduce((s,t)=>s+t.amount,0),cs=getCS(cn),dv=document.getElementById
 dv.style.display='block';document.getElementById('dCh').style.display='none';document.getElementById('dsg').style.display='none';
 let h='<div class="dh"><button class="dbk" onclick="clDr()">‹</button><div><div class="dtt">'+cs.icon+' '+cn+'</div><div class="dtl">'+mt.length+' transaction'+(mt.length!==1?'s':'')+' · '+fC(tot)+'</div></div></div>';
 if(!mt.length)h+='<div class="es"><p>No transactions</p></div>';
-else mt.forEach(t=>{h+='<div class="txr" onclick="opET(\''+t.id+'\')"><div class="txi '+t.type+'">'+(t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+(t.merchant||t.subcategory||t.categoryName)+'</div><div class="txm">'+fDUK(t.date)+(t.notes?' · '+t.notes:'')+'</div></div><div class="txa '+t.type+'">'+(t.type==='expense'?'-':'+')+fC(t.amount)+'</div></div>'});
+else mt.forEach(t=>{const isNeg=t.type==='expense'&&t.amount<0;h+='<div class="txr" onclick="opET(\''+t.id+'\')"><div class="txi '+(isNeg?'inc':t.type)+'">'+(isNeg?'+':t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+(t.merchant||t.subcategory||t.categoryName)+'</div><div class="txm">'+fDUK(t.date)+(t.notes?' · '+t.notes:'')+'</div></div><div class="txa '+(isNeg?'inc':t.type)+'">'+(isNeg?'+'+fC(Math.abs(t.amount)):t.type==='expense'?'-'+fC(t.amount):'+'+fC(t.amount))+'</div></div>'});
 dv.innerHTML=h}
 function clDr(){document.getElementById('dDr').style.display='none';document.getElementById('dCh').style.display='block';document.getElementById('dsg').style.display='grid'}
 
@@ -653,7 +653,7 @@ else if(so==='amt-asc')f.sort((a,b)=>a.amount-b.amount);
 else if(so==='cat-asc')f.sort((a,b)=>a.categoryName.localeCompare(b.categoryName));
 const d=document.getElementById('tl');
 if(!f.length){d.innerHTML='<div class="es"><div class="ic">📋</div><p>No transactions found</p></div>';return}
-d.innerHTML=f.map(t=>{const cs=getCS(t.categoryName);return'<div class="txr" onclick="opET(\''+t.id+'\')"><div class="txi '+t.type+'">'+(t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+t.categoryName+(t.subcategory?' › '+t.subcategory:'')+'</div><div class="txm">'+fDUK(t.date)+(t.merchant?' · '+t.merchant:'')+'</div></div><div class="txa '+t.type+'">'+(t.type==='expense'?'-':'+')+fC(t.amount)+'</div></div>'}).join('')}
+d.innerHTML=f.map(t=>{const cs=getCS(t.categoryName);const isNeg=t.type==='expense'&&t.amount<0;return'<div class="txr" onclick="opET(\''+t.id+'\')"><div class="txi '+(isNeg?'inc':t.type)+'">'+(isNeg?'+':t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+t.categoryName+(t.subcategory?' › '+t.subcategory:'')+'</div><div class="txm">'+fDUK(t.date)+(t.merchant?' · '+t.merchant:'')+'</div></div><div class="txa '+(isNeg?'inc':t.type)+'">'+(isNeg?'+'+fC(Math.abs(t.amount)):t.type==='expense'?'-'+fC(t.amount):'+'+fC(t.amount))+'</div></div>'}).join('')}
 function pTF(){const ms=document.getElementById('tfM'),cv=ms.value,mo=new Set();txs.forEach(t=>{const d=new Date(t.date);mo.add(d.getFullYear()+'-'+d.getMonth())});const so=[...mo].sort().reverse();ms.innerHTML='<option value="">All Months</option>'+so.map(m=>{const[y,n]=m.split('-').map(Number);return'<option value="'+m+'">'+mS(n,y)+'</option>'}).join('');if(cv&&so.includes(cv))ms.value=cv;
 const cs=document.getElementById('tfC'),cc=cs.value;cs.innerHTML='<option value="">All Categories</option>'+[...cats].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');if(cc)cs.value=cc}
 
@@ -678,7 +678,7 @@ const s=document.getElementById('eCat');s.innerHTML=cats.filter(c=>c.type===tp).
 function eCC(){const ci=document.getElementById('eCat').value,c=cats.find(x=>x.id===ci),s=document.getElementById('eSub');s.innerHTML='<option value="">None</option>'+(c&&c.subs?[...c.subs].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+x+'">'+x+'</option>').join(''):'')}
 async function upTx(id){
 const amt=parseFloat(document.getElementById('eAmt').value),dt=document.getElementById('eDt').value,ci=document.getElementById('eCat').value,sub=document.getElementById('eSub').value,mer=document.getElementById('eMer').value.trim(),not=document.getElementById('eNot').value.trim();
-if(!amt||amt<=0){toast('Enter valid amount');return}if(!dt){toast('Select a date');return}
+if(!amt||amt===0){toast('Enter valid amount');return}if(!dt){toast('Select a date');return}
 const cat=cats.find(c=>c.id===ci),ex=txs.find(t=>t.id===id);
 const tx={id,type:_et,amount:Math.round(amt*100)/100,date:dt,categoryId:ci,categoryName:cat?cat.name:'',subcategory:sub,merchant:mer,notes:not,createdAt:ex?ex.createdAt:Date.now(),updatedAt:Date.now()};
 await dp('transactions',tx);await lTx();clM();toast('Updated!');rD();rTx()}
@@ -856,7 +856,7 @@ const hdr=pCSVLine(lines[0]),cm={};hdr.forEach((h,i)=>cm[h.trim().toLowerCase()]
 for(let i=1;i<lines.length;i++){const row=pCSVLine(lines[i]);if(row.length<3)continue;
 const tp=(row[cm['type']]||'').trim().toLowerCase();if(tp!=='expense'&&tp!=='income')continue;
 const dtRaw=(row[cm['date']]||'').trim();let dt=parseDateUK(dtRaw);if(!dt)continue;
-const amt=parseFloat((row[cm['amount']]||'0').trim());if(!amt||amt<=0)continue;
+const amt=parseFloat((row[cm['amount']]||'0').trim());if(!amt||amt===0)continue;
 const cn=(row[cm['category']]||'').trim(),sn=(row[cm['subcategory']]||'').trim(),mr=(row[cm['merchant']]||'').trim(),nt=(row[cm['notes']]||'').trim();
 let cat=cats.find(c=>c.name.toLowerCase()===cn.toLowerCase()&&c.type===tp);
 if(!cat){cat={id:uid(),name:cn||'Imported',type:tp,subs:sn?[sn]:[]};await dp('categories',cat);cats.push(cat)}
@@ -884,7 +884,7 @@ const f=txs.filter(t=>
 (fDUK(t.date).includes(q))
 ).sort((a,b)=>new Date(b.date)-new Date(a.date));
 if(!f.length){d.innerHTML='<div class="es"><div class="ic">🔍</div><p>No results for "'+q+'"</p></div>';return}
-d.innerHTML='<div style="font-size:12px;color:var(--tx3);margin:8px 0">'+f.length+' result'+(f.length!==1?'s':'')+'</div>'+f.map(t=>'<div class="txr" onclick="closeGlobalSearch();opET(\''+t.id+'\')"><div class="txi '+t.type+'">'+(t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+t.categoryName+(t.subcategory?' › '+t.subcategory:'')+'</div><div class="txm">'+fDUK(t.date)+(t.merchant?' · '+t.merchant:'')+(t.notes?' · '+t.notes:'')+'</div></div><div class="txa '+t.type+'">'+(t.type==='expense'?'-':'+')+fC(t.amount)+'</div></div>').join('')}
+d.innerHTML='<div style="font-size:12px;color:var(--tx3);margin:8px 0">'+f.length+' result'+(f.length!==1?'s':'')+'</div>'+f.map(t=>{const isNeg=t.type==='expense'&&t.amount<0;return'<div class="txr" onclick="closeGlobalSearch();opET(\''+t.id+'\')"><div class="txi '+(isNeg?'inc':t.type)+'">'+(isNeg?'+':t.type==='expense'?'−':'+')+' </div><div class="txn"><div class="txc">'+t.categoryName+(t.subcategory?' › '+t.subcategory:'')+'</div><div class="txm">'+fDUK(t.date)+(t.merchant?' · '+t.merchant:'')+(t.notes?' · '+t.notes:'')+'</div></div><div class="txa '+(isNeg?'inc':t.type)+'">'+(isNeg?'+'+fC(Math.abs(t.amount)):t.type==='expense'?'-'+fC(t.amount):'+'+fC(t.amount))+'</div></div>'}).join('')}
 
 // ===== PIN LOCK =====
 let PIN_CODE=null;
