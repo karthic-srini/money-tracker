@@ -430,7 +430,7 @@ function mS(m,y){return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','O
 function toast(m){const t=document.getElementById('tst');t.textContent=m;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),2200)}
 function sCf(t,m,fn){document.getElementById('cfT').textContent=t;document.getElementById('cfMsg').textContent=m;document.getElementById('cfOv').classList.add('op');const b=document.getElementById('cfA'),n=b.cloneNode(true);b.parentNode.replaceChild(n,b);n.id='cfA';n.onclick=()=>{clCf();fn()}}
 function clCf(){document.getElementById('cfOv').classList.remove('op')}
-function opM(h){document.getElementById('mCt').innerHTML=h;document.getElementById('mOv').classList.add('op')}
+function opM(h){document.getElementById('mCt').innerHTML=h;document.getElementById('mOv').classList.add('op');history.pushState({modal:true},'',location.href)}
 function clM(){document.getElementById('mOv').classList.remove('op')}
 function updCurUI(){document.querySelectorAll('.cur-prefix').forEach(e=>e.textContent=CUR.symbol)}
 
@@ -470,7 +470,7 @@ toast('Reminder set to every '+d+' day'+(d!==1?'s':''));checkBackupReminder()}
 function clearAllTx(){sCf('Clear All Transactions','This will permanently delete ALL '+txs.length+' transactions. Categories will be kept. This cannot be undone!',async()=>{for(const t of txs)await ddl('transactions',t.id);await lTx();toast('All transactions cleared');rD();rTx();rCat()})}
 
 // ===== NAV =====
-function sw(id){document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('act',s.id===id));document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('act',n.dataset.s===id));document.getElementById('mc').scrollTop=0;if(id==='sDash')rD();if(id==='sTx')rTx();if(id==='sCat')rCat();if(id==='sExp')pEM()}
+function sw(id){document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('act',s.id===id));document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('act',n.dataset.s===id));document.getElementById('mc').scrollTop=0;if(id!=='sDash')history.pushState({screen:id},'',location.href);if(id==='sDash')rD();if(id==='sTx')rTx();if(id==='sCat')rCat();if(id==='sExp')pEM()}
 
 // ===== ADD =====
 function openAddModal(prefill){
@@ -868,7 +868,7 @@ function parseDateUK(s){if(!s)return null;let m=s.match(/^(\d{1,2})[\/\-](\d{1,2
 
 // ===== GLOBAL SEARCH =====
 function openGlobalSearch(){
-document.getElementById('gsOv').classList.add('op');
+document.getElementById('gsOv').classList.add('op');history.pushState({search:true},'',location.href);
 const inp=document.getElementById('gsIn');inp.value='';inp.focus();
 document.getElementById('gsRes').innerHTML='<div class="es"><p style="font-size:13px">Start typing to search across all transactions</p></div>'}
 function closeGlobalSearch(){document.getElementById('gsOv').classList.remove('op')}
@@ -932,6 +932,27 @@ document.getElementById('pinOverlay').style.display='flex'}
 
 function removePin(){
 sCf('Remove PIN','Remove PIN lock from the app?',async()=>{PIN_CODE=null;await ddl('meta','pin');toast('PIN removed')})}
+
+// ===== MOBILE BACK BUTTON =====
+window.addEventListener('popstate',function(e){
+// If modal is open, close it
+if(document.getElementById('mOv').classList.contains('op')){clM();return}
+// If global search is open, close it
+if(document.getElementById('gsOv').classList.contains('op')){closeGlobalSearch();return}
+// If confirm dialog is open, close it
+if(document.getElementById('cfOv').classList.contains('op')){clCf();return}
+// If in category detail, go back to list
+if(catView==='detail'){catView='list';catDetailId=null;rCat();return}
+// If in dashboard drilldown, go back
+if(document.getElementById('dDr').style.display!=='none'){clDr();return}
+// If not on dashboard, go to dashboard
+const act=document.querySelector('.scr.act');
+if(act&&act.id!=='sDash'){sw('sDash');return}
+// Already on dashboard — push state again so next back exits
+history.pushState(null,'',location.href);
+});
+// Push initial state
+history.pushState(null,'',location.href);
 
 // ===== INIT =====
 async function init(){
