@@ -448,6 +448,12 @@ Object.keys(CURS).map(k=>'<div class="set-chip'+(CUR.code===k?' sel':'')+'" oncl
 '<div class="set-row"><div class="set-label">Backup Reminder</div><div class="set-val">'+
 [1,2,3,5,7].map(d=>'<div class="set-chip'+(BACKUP_DAYS===d?' sel':'')+'" onclick="setBkDays('+d+')">'+d+'d</div>').join('')+
 '</div></div>'+
+'<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">☁️ Cloud Sync (jsonbin.io)</p>'+
+(SYNC_KEY?'<div style="font-size:12px;color:var(--ac);margin-bottom:6px">✅ Connected</div>'+
+'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px;word-break:break-all"><b>Bin ID:</b> '+SYNC_BIN+' <span onclick="navigator.clipboard.writeText(\''+SYNC_BIN+'\');toast(\'Bin ID copied!\')" style="color:var(--ac);cursor:pointer;text-decoration:underline">Copy</span></div>'+
+'<div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn bp bsm" onclick="clM();doSync()">🔄 Sync Now</button><button class="btn bs bsm" onclick="clM();disconnectSync()">Disconnect</button></div>'
+:'<p style="font-size:12px;color:var(--tx3);margin-bottom:10px">Sync data across devices. Free account at <b>jsonbin.io</b></p>'+
+'<button class="btn bs" onclick="clM();openSyncSetup()">Set Up Cloud Sync</button>')+'</div>'+
 '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">🔒 Security</p>'+(PIN_CODE?'<div style="display:flex;gap:8px"><button class="btn bs" onclick="clM();showPinSetup()">Change PIN</button><button class="btn bd" onclick="clM();removePin()">Remove PIN</button></div>':'<button class="btn bs" onclick="showPinSetup()">Set Up PIN Lock</button>')+'</div>'+
 '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">⚠️ Danger Zone</p><button class="btn bd" onclick="clM();clearAllTx()">🗑️ Clear All Transactions</button></div>'+
 '<p style="font-size:12px;color:var(--tx3);margin-top:16px">💡 <b>Tip:</b> To use on another device, go to Export tab → Full Backup (JSON), send the file to your other device, then Import it there.</p>'+
@@ -866,6 +872,97 @@ await lAll();toast(count+' transactions imported!');ev.target.value=''}
 function pCSVLine(l){const r=[];let cur='',inQ=false;for(let i=0;i<l.length;i++){const c=l[i];if(c==='"'){if(inQ&&l[i+1]==='"'){cur+='"';i++}else inQ=!inQ}else if(c===','&&!inQ){r.push(cur);cur=''}else cur+=c}r.push(cur);return r}
 function parseDateUK(s){if(!s)return null;let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m){const dd=parseInt(m[1]),mm=parseInt(m[2]),yy=parseInt(m[3]);if(mm>=1&&mm<=12&&dd>=1&&dd<=31)return yy+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0')}m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return s;return null}
 
+// ===== CLOUD SYNC (jsonbin.io) =====
+let SYNC_KEY=null;
+let SYNC_BIN=null;
+const JBAPI='https://api.jsonbin.io/v3';
+
+async function loadSyncSettings(){
+try{const k=await dg('meta','syncKey');if(k&&k.value)SYNC_KEY=k.value}catch(e){}
+try{const b=await dg('meta','syncBin');if(b&&b.value)SYNC_BIN=b.value}catch(e){}}
+
+function openSyncSetup(){
+opM('<div class="mt">Set Up Cloud Sync<button class="mx" onclick="clM()">✕</button></div>'+
+'<div style="font-size:13px;color:var(--tx2);margin-bottom:16px"><b>Step 1:</b> Go to <b>jsonbin.io</b> and create a free account<br><br>'+
+'<b>Step 2:</b> After signing in, click <b>"API Keys"</b> in the top menu<br><br>'+
+'<b>Step 3:</b> Copy your <b>X-Master-Key</b> and paste it below</div>'+
+'<div class="fg"><label class="fl">API Key (X-Master-Key)</label><input type="text" class="fi" id="syncKeyIn" placeholder="Paste your API key here..."></div>'+
+'<div class="fg"><label class="fl">Bin ID (leave blank for first device)</label><input type="text" class="fi" id="syncBinIn" placeholder="Paste Bin ID from your other device..."><div style="font-size:11px;color:var(--tx3);margin-top:4px">First device? Leave blank — a new Bin will be created. Second device? Paste the Bin ID shown in Settings on your first device.</div></div>'+
+'<button class="btn bp" onclick="saveSyncKey()">Connect</button>')}
+
+async function saveSyncKey(){
+const key=document.getElementById('syncKeyIn').value.trim();
+const existingBin=document.getElementById('syncBinIn').value.trim();
+if(!key){toast('Paste your API key');return}
+clM();toast('Connecting...');
+try{
+if(existingBin){
+// Verify the bin exists by reading it
+const vRes=await fetch(JBAPI+'/b/'+existingBin+'/latest',{headers:{'X-Master-Key':key,'X-Bin-Meta':'false'}});
+if(!vRes.ok){toast('Invalid Bin ID or API key');return}
+SYNC_KEY=key;SYNC_BIN=existingBin;
+await dp('meta',{key:'syncKey',value:SYNC_KEY});
+await dp('meta',{key:'syncBin',value:SYNC_BIN});
+toast('Connected to existing bin! Tap Sync Now.');
+}else{
+// Create a new bin
+const res=await fetch(JBAPI+'/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'MoneyTracker','X-Bin-Private':'true'},body:JSON.stringify({version:2,transactions:[],categories:[],currency:'GBP',lastSync:Date.now()})});
+if(!res.ok){const err=await res.json();toast('Error: '+(err.message||'Invalid key'));return}
+const data=await res.json();
+SYNC_KEY=key;SYNC_BIN=data.metadata.id;
+await dp('meta',{key:'syncKey',value:SYNC_KEY});
+await dp('meta',{key:'syncBin',value:SYNC_BIN});
+toast('Connected! Tap Sync Now to upload data.');
+}
+}catch(e){toast('Connection failed: '+e.message)}}
+
+async function doSync(){
+if(!SYNC_KEY||!SYNC_BIN){toast('Set up sync first');return}
+toast('Syncing...');
+try{
+// Read remote data
+const rRes=await fetch(JBAPI+'/b/'+SYNC_BIN+'/latest',{headers:{'X-Master-Key':SYNC_KEY,'X-Bin-Meta':'false'}});
+if(!rRes.ok){toast('Sync read failed');return}
+const remote=await rRes.json();
+
+// Merge transactions — use updatedAt to resolve conflicts
+const localMap=new Map();txs.forEach(t=>localMap.set(t.id,t));
+const remoteMap=new Map();(remote.transactions||[]).forEach(t=>remoteMap.set(t.id,t));
+
+// Merge: keep whichever has the latest updatedAt
+const allIds=new Set([...localMap.keys(),...remoteMap.keys()]);
+const merged=[];
+allIds.forEach(id=>{
+const l=localMap.get(id),r=remoteMap.get(id);
+if(l&&r)merged.push((l.updatedAt||0)>=(r.updatedAt||0)?l:r);
+else if(l)merged.push(l);
+else merged.push(r)});
+
+// Merge categories — prefer local if both exist
+const localCatMap=new Map();cats.forEach(c=>localCatMap.set(c.id,c));
+(remote.categories||[]).forEach(c=>{if(!localCatMap.has(c.id))localCatMap.set(c.id,c)});
+const mergedCats=[...localCatMap.values()];
+
+// Save merged data locally
+for(const t of merged)await dp('transactions',t);
+for(const c of mergedCats)await dp('categories',c);
+await lAll();
+
+// Push merged data to remote
+const payload={version:2,transactions:txs,categories:cats,currency:CUR.code,lastSync:Date.now()};
+const wRes=await fetch(JBAPI+'/b/'+SYNC_BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':SYNC_KEY},body:JSON.stringify(payload)});
+if(!wRes.ok){toast('Sync write failed');return}
+
+toast('Synced! '+txs.length+' transactions');
+rD();rTx();rCat();
+}catch(e){toast('Sync error: '+e.message)}}
+
+async function disconnectSync(){
+sCf('Disconnect Sync','Remove cloud sync? Your local data stays intact.',async()=>{
+SYNC_KEY=null;SYNC_BIN=null;
+await ddl('meta','syncKey');await ddl('meta','syncBin');
+toast('Sync disconnected')})}
+
 // ===== GLOBAL SEARCH =====
 function openGlobalSearch(){
 document.getElementById('gsOv').classList.add('op');history.pushState({search:true},'',location.href);
@@ -969,7 +1066,7 @@ try{const m=await dg('meta','currency');if(m&&m.value&&CURS[m.value])CUR=CURS[m.
 try{const m=await dg('meta','theme');if(m&&m.value==='dark')document.documentElement.classList.add('dark')}catch(e){}
 await lAll();
 if(!cats.length){for(const c of DCAT)await dp('categories',c);await lCat()}
-updCurUI();await loadBackupSettings();checkBackupReminder();rD()}
+updCurUI();await loadBackupSettings();await loadSyncSettings();checkBackupReminder();rD()}
 init().catch(e=>console.error('Init error:',e));
 </script>
 </body>
