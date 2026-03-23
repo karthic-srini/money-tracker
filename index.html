@@ -812,7 +812,8 @@ const data={version:2,exportedAt:new Date().toISOString(),currency:CUR.code,cate
 dlFile(JSON.stringify(data,null,2),'money-tracker-backup-'+fDF()+'.json','application/json');
 dp('meta',{key:'lastBackupTime',value:Date.now()}).catch(()=>{});
 document.getElementById('bkBanner').style.display='none';
-toast('Backup complete — CSV, XLSX & JSON!')}
+silentCloudPush();
+toast('Backup complete — CSV, XLSX & JSON!'+(SYNC_KEY?' + Cloud':''))}
 
 // Backup reminder system
 let BACKUP_DAYS=3; // default reminder interval in days
@@ -838,7 +839,9 @@ document.getElementById('bkBanner').style.display='none';
 // ===== FULL JSON BACKUP/RESTORE =====
 async function expJSON(){
 const data={version:2,exportedAt:new Date().toISOString(),currency:CUR.code,categories:cats,transactions:txs};
-dlFile(JSON.stringify(data,null,2),'money-tracker-full-backup-'+fDF()+'.json','application/json');toast('Full backup exported!')}
+dlFile(JSON.stringify(data,null,2),'money-tracker-full-backup-'+fDF()+'.json','application/json');
+silentCloudPush();
+toast('Full backup exported!'+(SYNC_KEY?' + Cloud':''))}
 
 async function impJSON(ev){
 const file=ev.target.files[0];if(!file)return;
@@ -962,6 +965,12 @@ sCf('Disconnect Sync','Remove cloud sync? Your local data stays intact.',async()
 SYNC_KEY=null;SYNC_BIN=null;
 await ddl('meta','syncKey');await ddl('meta','syncBin');
 toast('Sync disconnected')})}
+
+// Silent push to cloud — no UI feedback, runs in background
+function silentCloudPush(){
+if(!SYNC_KEY||!SYNC_BIN||!txs.length)return;
+const payload={version:2,transactions:txs,categories:cats,currency:CUR.code,lastSync:Date.now()};
+fetch(JBAPI+'/b/'+SYNC_BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':SYNC_KEY},body:JSON.stringify(payload)}).catch(()=>{})}
 
 // ===== GLOBAL SEARCH =====
 function openGlobalSearch(){
