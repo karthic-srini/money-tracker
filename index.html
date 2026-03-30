@@ -317,6 +317,11 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Export everything (transactions + categories + settings) as a single JSON file. Use this to transfer data between devices.</p>
 <button class="btn bp" onclick="expJSON()">⬇ Full Backup (JSON)</button>
 </div>
+<div class="card" id="cloudPushCard">
+<h3 style="font-size:16px;font-weight:700;margin-bottom:12px">☁️ Push to Cloud</h3>
+<p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Push all data to jsonbin.io without downloading any files.</p>
+<button class="btn bp" onclick="pushToCloud()">☁️ Push to Cloud</button>
+</div>
 <div class="card">
 <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Restore / Import</h3>
 <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Restore from a full JSON backup or import a CSV file.</p>
@@ -831,10 +836,23 @@ banner.querySelector('.bkMsg').textContent=last?'Last backup was '+daysSince+' d
 }else{banner.style.display='none'}
 }).catch(()=>{})}
 async function dismissBackupAndRun(){
-backupNow();
+if(SYNC_KEY&&SYNC_BIN){await pushToCloud()}else{backupNow()}
 await dp('meta',{key:'lastBackupTime',value:Date.now()});
 document.getElementById('bkBanner').style.display='none';
 }
+
+async function pushToCloud(){
+if(!SYNC_KEY||!SYNC_BIN){toast('Set up Cloud Sync in Settings first');return}
+if(!txs.length){toast('No transactions');return}
+toast('Pushing to cloud...');
+try{
+const payload={version:2,transactions:txs,categories:cats,currency:CUR.code,lastSync:Date.now()};
+const res=await fetch(JBAPI+'/b/'+SYNC_BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':SYNC_KEY},body:JSON.stringify(payload)});
+if(!res.ok){toast('Push failed — check connection');return}
+await dp('meta',{key:'lastBackupTime',value:Date.now()});
+document.getElementById('bkBanner').style.display='none';
+toast('☁️ Pushed to cloud — '+txs.length+' transactions');
+}catch(e){toast('Push failed: '+e.message)}}
 
 // ===== FULL JSON BACKUP/RESTORE =====
 async function expJSON(){
