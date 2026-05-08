@@ -569,7 +569,7 @@ function R(){
 
 function renderHdr(){
   const showBack=S.tab!=='dashboard'||S.drill;
-  return`<header class="hdr"><div class="hdr-in"><div class="logo">${showBack?'<button class="ibtn" data-a="goHome" style="margin-right:4px;font-size:18px">←</button>':''}<div class="logo-i">W</div><div><h1>WealthView</h1><p>Investment Tracker · v2.4</p></div></div><div style="display:flex;gap:6px"><button class="ibtn" data-a="hide" title="Toggle amounts">${S.hide?'🙈':'👁️'}</button><button class="ibtn" data-a="sett">⚙️</button></div></div>
+  return`<header class="hdr"><div class="hdr-in"><div class="logo">${showBack?'<button class="ibtn" data-a="goHome" style="margin-right:4px;font-size:18px">←</button>':''}<div class="logo-i">W</div><div><h1>WealthView</h1><p>Investment Tracker · v2.5</p></div></div><div style="display:flex;gap:6px"><button class="ibtn" data-a="hide" title="Toggle amounts">${S.hide?'🙈':'👁️'}</button><button class="ibtn" data-a="sett">⚙️</button></div></div>
   <div class="tabs">${['dashboard','portfolio','sips','sync'].map(t=>{const ic={dashboard:'📊',portfolio:'💼',sips:'🔁',sync:'🔄'};const lb={dashboard:'Dashboard',portfolio:'Portfolio',sips:'SIPs',sync:'Sync'};return`<button class="tbtn ${S.tab===t?'on':''}" data-a="tab" data-v="${t}">${ic[t]} <span class="tl">${lb[t]}</span></button>`;}).join('')}</div></header>`;
 }
 
