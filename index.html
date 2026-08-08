@@ -216,8 +216,8 @@ html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);
 .fab{position:fixed;bottom:calc(70px + var(--sb));right:16px;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;border:none;font-size:24px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(99,102,241,.3);z-index:50;transition:transform .15s,opacity .15s;opacity:0.45}
 .fab:active{transform:scale(.9);opacity:1}
 /* Toggle switch */
-input[type=checkbox]:checked+span{background:var(--ac)}
-input[type=checkbox]:checked+span+span{left:23px}
+input[type=checkbox]:checked+span{background:var(--ac) !important}
+input[type=checkbox]:checked+span+span{left:23px !important}
 </style>
 </head>
 <body>
@@ -233,7 +233,7 @@ input[type=checkbox]:checked+span+span{left:23px}
 </div>
 <div id="app">
 <div class="hdr">
-<h1>💰 Money<span>Tracker</span></h1>
+<h1>💰 Money<span>Tracker</span> <span style="font-size:10px;color:var(--tx3);font-weight:400">v38</span></h1>
 <div class="hdr-acts">
 <button class="btn-gear" id="eyeBtn" onclick="toggleMask()" style="font-size:15px">🙈</button>
 <button class="btn-gear" onclick="openGlobalSearch()" style="font-size:15px">🔍</button>
@@ -458,11 +458,10 @@ Object.keys(CURS).map(k=>'<div class="set-chip'+(CUR.code===k?' sel':'')+'" oncl
 '</div></div>'+
 '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">🔁 Recurring Transactions</p>'+
 '<button class="btn bs" onclick="clM();openManageRecurring()">Manage Recurring ('+recs.filter(r=>r.active).length+' active)</button></div>'+
-'<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">☁️ Cloud Sync (jsonbin.io)</p>'+
-(SYNC_KEY?'<div style="font-size:12px;color:var(--ac);margin-bottom:6px">✅ Connected</div>'+
-'<div style="font-size:11px;color:var(--tx3);margin-bottom:10px;word-break:break-all"><b>Bin ID:</b> '+SYNC_BIN+' <span onclick="navigator.clipboard.writeText(\''+SYNC_BIN+'\');toast(\'Bin ID copied!\')" style="color:var(--ac);cursor:pointer;text-decoration:underline">Copy</span></div>'+
+'<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">☁️ Cloud Sync (Supabase)</p>'+
+(SYNC_URL?'<div style="font-size:12px;color:var(--ac);margin-bottom:10px">✅ Connected to Supabase</div>'+
 '<div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn bp bsm" onclick="clM();doSync()">🔄 Sync Now</button><button class="btn bs bsm" onclick="clM();disconnectSync()">Disconnect</button></div>'
-:'<p style="font-size:12px;color:var(--tx3);margin-bottom:10px">Sync data across devices. Free account at <b>jsonbin.io</b></p>'+
+:'<p style="font-size:12px;color:var(--tx3);margin-bottom:10px">Sync data across devices. Free, no size limit</p>'+
 '<button class="btn bs" onclick="clM();openSyncSetup()">Set Up Cloud Sync</button>')+'</div>'+
 '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">🔒 Security</p>'+(PIN_CODE?'<div style="display:flex;gap:8px"><button class="btn bs" onclick="clM();showPinSetup()">Change PIN</button><button class="btn bd" onclick="clM();removePin()">Remove PIN</button></div>':'<button class="btn bs" onclick="showPinSetup()">Set Up PIN Lock</button>')+'</div>'+
 '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--bd)"><p style="font-size:13px;color:var(--tx2);margin-bottom:12px">⚠️ Danger Zone</p><button class="btn bd" onclick="clM();clearAllTx()">🗑️ Clear All Transactions</button></div>'+
@@ -526,7 +525,7 @@ const recCb=document.getElementById('aRec');
 if(recCb&&recCb.checked){
 const freq=document.getElementById('aRecFreq').value;
 const rec={id:uid(),type:cAT,amount:Math.round(amt*100)/100,categoryId:ci,categoryName:cat?cat.name:'',subcategory:sub,merchant:mer,notes:not,frequency:freq,dayOfMonth:freq==='monthly'?parseInt(document.getElementById('aRecDom').value):null,dayOfWeek:freq==='weekly'?parseInt(document.getElementById('aRecDow').value):null,active:true,lastCreated:dt,createdAt:Date.now()};
-await dp('recurring',rec)}
+await dp('recurring',rec);await processRecurring()}
 clM();toast(eid?'Updated!':(recCb&&recCb.checked?'Saved + Recurring set!':'Saved!'));rD();rTx()}
 
 // ===== LOAD =====
@@ -817,7 +816,7 @@ toast('Subcategory renamed!')}
 function togED(){const v=document.getElementById('eR').value;document.getElementById('eMW').style.display=v==='month'?'block':'none';document.getElementById('eCW').style.display=v==='custom'?'block':'none'}
 function pEM(){const s=document.getElementById('eM'),mo=new Set();txs.forEach(t=>{const d=new Date(t.date);mo.add(d.getFullYear()+'-'+String(d.getMonth()).padStart(2,'0'))});s.innerHTML=[...mo].sort().reverse().map(m=>{const[y,n]=m.split('-').map(Number);return'<option value="'+m+'">'+mS(n,y)+'</option>'}).join('');
 const cs=document.getElementById('cloudStatus');
-if(SYNC_KEY&&SYNC_BIN)cs.textContent='Connected · Bin: '+SYNC_BIN.slice(-6)+' · Push all data to jsonbin.io without downloading files.';
+if(SYNC_URL&&SYNC_ANON)cs.textContent='Connected to Supabase · Push all data without downloading files.';
 else cs.textContent='Not connected. Set up Cloud Sync in Settings first.'}
 function gET(){const r=document.getElementById('eR').value;let f=[...txs];if(r==='month'){const v=document.getElementById('eM').value;if(v){const[y,m]=v.split('-').map(Number);f=f.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y})}}else if(r==='custom'){const fr=document.getElementById('eF').value,to=document.getElementById('eT').value;if(fr)f=f.filter(t=>t.date>=fr);if(to)f=f.filter(t=>t.date<=to)}return f.sort((a,b)=>new Date(a.date)-new Date(b.date))}
 function bCSV(ts){return'Type,Date,Amount,Currency,Category,Subcategory,Merchant,Notes\n'+ts.map(t=>t.type+','+fDUK(t.date)+','+t.amount.toFixed(2)+','+CUR.code+',"'+(t.categoryName||'').replace(/"/g,'""')+'","'+(t.subcategory||'').replace(/"/g,'""')+'","'+(t.merchant||'').replace(/"/g,'""')+'","'+(t.notes||'').replace(/"/g,'""')+'"').join('\n')}
@@ -840,7 +839,7 @@ dlFile(JSON.stringify(data,null,2),'money-tracker-backup-'+fDF()+'.json','applic
 dp('meta',{key:'lastBackupTime',value:Date.now()}).catch(()=>{});
 document.getElementById('bkBanner').style.display='none';
 silentCloudPush();
-toast('Backup complete — CSV, XLSX & JSON!'+(SYNC_KEY?' + Cloud':''))}
+toast('Backup complete — CSV, XLSX & JSON!'+(SYNC_URL?' + Cloud':''))}
 
 // Backup reminder system
 let BACKUP_DAYS=3; // default reminder interval in days
@@ -858,33 +857,17 @@ banner.querySelector('.bkMsg').textContent=last?'Last backup was '+daysSince+' d
 }else{banner.style.display='none'}
 }).catch(()=>{})}
 async function dismissBackupAndRun(){
-if(SYNC_KEY&&SYNC_BIN){await pushToCloud()}else{backupNow()}
+if(SYNC_URL&&SYNC_ANON){await pushToCloud()}else{backupNow()}
 await dp('meta',{key:'lastBackupTime',value:Date.now()});
 document.getElementById('bkBanner').style.display='none';
 }
-
-async function pushToCloud(){
-if(!SYNC_KEY||!SYNC_BIN){toast('Set up Cloud Sync in Settings first');return}
-if(!txs.length){toast('No transactions');return}
-toast('Pushing to cloud...');
-try{
-const payload={version:2,transactions:txs,categories:cats,recurring:recs,currency:CUR.code,lastSync:Date.now()};
-const body=JSON.stringify(payload);
-console.log('Push: Bin='+SYNC_BIN+' Size='+body.length+' bytes');
-const res=await fetch(JBAPI+'/b/'+SYNC_BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':SYNC_KEY,'X-Bin-Versioning':'false'},body:body});
-console.log('Push response: '+res.status+' '+res.statusText);
-if(!res.ok){const txt=await res.text().catch(()=>'');console.log('Push error body:',txt);let msg='Status '+res.status;try{const j=JSON.parse(txt);msg=j.message||msg}catch(e){}toast('Push failed: '+msg);return}
-await dp('meta',{key:'lastBackupTime',value:Date.now()});
-document.getElementById('bkBanner').style.display='none';
-toast('☁️ Pushed to cloud — '+txs.length+' transactions');
-}catch(e){console.error('Push exception:',e);toast('Push failed: '+e.message)}}
 
 // ===== FULL JSON BACKUP/RESTORE =====
 async function expJSON(){
 const data={version:2,exportedAt:new Date().toISOString(),currency:CUR.code,categories:cats,transactions:txs,recurring:recs};
 dlFile(JSON.stringify(data,null,2),'money-tracker-full-backup-'+fDF()+'.json','application/json');
 silentCloudPush();
-toast('Full backup exported!'+(SYNC_KEY?' + Cloud':''))}
+toast('Full backup exported!'+(SYNC_URL?' + Cloud':''))}
 
 async function impJSON(ev){
 const file=ev.target.files[0];if(!file)return;
@@ -919,108 +902,96 @@ await lAll();toast(count+' transactions imported!');ev.target.value=''}
 function pCSVLine(l){const r=[];let cur='',inQ=false;for(let i=0;i<l.length;i++){const c=l[i];if(c==='"'){if(inQ&&l[i+1]==='"'){cur+='"';i++}else inQ=!inQ}else if(c===','&&!inQ){r.push(cur);cur=''}else cur+=c}r.push(cur);return r}
 function parseDateUK(s){if(!s)return null;let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m){const dd=parseInt(m[1]),mm=parseInt(m[2]),yy=parseInt(m[3]);if(mm>=1&&mm<=12&&dd>=1&&dd<=31)return yy+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0')}m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return s;return null}
 
-// ===== CLOUD SYNC (jsonbin.io) =====
-let SYNC_KEY=null;
-let SYNC_BIN=null;
-const JBAPI='https://api.jsonbin.io/v3';
+// ===== CLOUD SYNC (Supabase) =====
+let SYNC_URL=null;
+let SYNC_ANON=null;
 
 async function loadSyncSettings(){
-try{const k=await dg('meta','syncKey');if(k&&k.value)SYNC_KEY=k.value}catch(e){}
-try{const b=await dg('meta','syncBin');if(b&&b.value)SYNC_BIN=b.value}catch(e){}}
+try{const u=await dg('meta','syncUrl');if(u&&u.value)SYNC_URL=u.value}catch(e){}
+try{const a=await dg('meta','syncAnon');if(a&&a.value)SYNC_ANON=a.value}catch(e){}}
 
 function openSyncSetup(){
 opM('<div class="mt">Set Up Cloud Sync<button class="mx" onclick="clM()">✕</button></div>'+
-'<div style="font-size:13px;color:var(--tx2);margin-bottom:16px"><b>Step 1:</b> Go to <b>jsonbin.io</b> and create a free account<br><br>'+
-'<b>Step 2:</b> After signing in, click <b>"API Keys"</b> in the top menu<br><br>'+
-'<b>Step 3:</b> Copy your <b>X-Master-Key</b> and paste it below</div>'+
-'<div class="fg"><label class="fl">API Key (X-Master-Key)</label><input type="text" class="fi" id="syncKeyIn" placeholder="Paste your API key here..."></div>'+
-'<div class="fg"><label class="fl">Bin ID (leave blank for first device)</label><input type="text" class="fi" id="syncBinIn" placeholder="Paste Bin ID from your other device..."><div style="font-size:11px;color:var(--tx3);margin-top:4px">First device? Leave blank — a new Bin will be created. Second device? Paste the Bin ID shown in Settings on your first device.</div></div>'+
-'<button class="btn bp" onclick="saveSyncKey()">Connect</button>')}
+'<div style="font-size:13px;color:var(--tx2);margin-bottom:16px"><b>Step 1:</b> Create a Supabase project at <b>supabase.com</b><br><br>'+
+'<b>Step 2:</b> Run the setup SQL in <b>SQL Editor</b><br><br>'+
+'<b>Step 3:</b> Go to <b>Settings → API</b> and copy your Project URL and anon key</div>'+
+'<div class="fg"><label class="fl">Supabase Project URL</label><input type="text" class="fi" id="syncUrlIn" placeholder="https://xxxxx.supabase.co" value="'+(SYNC_URL||'')+'"></div>'+
+'<div class="fg"><label class="fl">Anon Key</label><input type="text" class="fi" id="syncAnonIn" placeholder="eyJhbGciOiJI..." value="'+(SYNC_ANON||'')+'"></div>'+
+'<button class="btn bp" onclick="saveSyncSettings()">Connect</button>')}
 
-async function saveSyncKey(){
-const key=document.getElementById('syncKeyIn').value.trim();
-const existingBin=document.getElementById('syncBinIn').value.trim();
-if(!key){toast('Paste your API key');return}
+async function saveSyncSettings(){
+const url=document.getElementById('syncUrlIn').value.trim().replace(/\/$/,'');
+const anon=document.getElementById('syncAnonIn').value.trim();
+if(!url||!anon){toast('Fill in both fields');return}
 clM();toast('Connecting...');
 try{
-if(existingBin){
-// Verify the bin exists by reading it
-const vRes=await fetch(JBAPI+'/b/'+existingBin+'/latest',{headers:{'X-Master-Key':key,'X-Bin-Meta':'false'}});
-if(!vRes.ok){toast('Invalid Bin ID or API key');return}
-SYNC_KEY=key;SYNC_BIN=existingBin;
-await dp('meta',{key:'syncKey',value:SYNC_KEY});
-await dp('meta',{key:'syncBin',value:SYNC_BIN});
-toast('Connected to existing bin!');openSettings();
-}else{
-// Create a new bin
-const res=await fetch(JBAPI+'/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'MoneyTracker','X-Bin-Private':'true'},body:JSON.stringify({version:2,transactions:[],categories:[],currency:'GBP',lastSync:Date.now()})});
-if(!res.ok){const err=await res.json().catch(()=>({}));toast('Error: '+(err.message||'Invalid key — check and try again'));return}
-const data=await res.json();
-SYNC_KEY=key;SYNC_BIN=data.metadata.id;
-await dp('meta',{key:'syncKey',value:SYNC_KEY});
-await dp('meta',{key:'syncBin',value:SYNC_BIN});
-toast('Connected! Now tap Sync Now.');openSettings();
-}
+const res=await fetch(url+'/rest/v1/money_tracker_sync?id=eq.default&select=id',{headers:{'apikey':anon,'Authorization':'Bearer '+anon}});
+if(!res.ok){toast('Connection failed: '+(res.status===404?'Table not found — run the SQL first':'Status '+res.status));return}
+SYNC_URL=url;SYNC_ANON=anon;
+await dp('meta',{key:'syncUrl',value:SYNC_URL});
+await dp('meta',{key:'syncAnon',value:SYNC_ANON});
+toast('Connected to Supabase!');openSettings();
 }catch(e){toast('Connection failed: '+e.message)}}
 
 async function doSync(){
-if(!SYNC_KEY||!SYNC_BIN){toast('Set up sync first');return}
+if(!SYNC_URL||!SYNC_ANON){toast('Set up sync first');return}
 toast('Syncing...');
 try{
-// Read remote data
-const rRes=await fetch(JBAPI+'/b/'+SYNC_BIN+'/latest',{headers:{'X-Master-Key':SYNC_KEY,'X-Bin-Meta':'false'}});
+const rRes=await fetch(SYNC_URL+'/rest/v1/money_tracker_sync?id=eq.default&select=data',{headers:{'apikey':SYNC_ANON,'Authorization':'Bearer '+SYNC_ANON}});
 if(!rRes.ok){toast('Sync read failed');return}
-const remote=await rRes.json();
+const rows=await rRes.json();
+const remote=rows.length?rows[0].data:{};
 
-// Merge transactions — use updatedAt to resolve conflicts
 const localMap=new Map();txs.forEach(t=>localMap.set(t.id,t));
 const remoteMap=new Map();(remote.transactions||[]).forEach(t=>remoteMap.set(t.id,t));
-
-// Merge: keep whichever has the latest updatedAt
 const allIds=new Set([...localMap.keys(),...remoteMap.keys()]);
 const merged=[];
-allIds.forEach(id=>{
-const l=localMap.get(id),r=remoteMap.get(id);
-if(l&&r)merged.push((l.updatedAt||0)>=(r.updatedAt||0)?l:r);
-else if(l)merged.push(l);
-else merged.push(r)});
+allIds.forEach(id=>{const l=localMap.get(id),r=remoteMap.get(id);if(l&&r)merged.push((l.updatedAt||0)>=(r.updatedAt||0)?l:r);else if(l)merged.push(l);else merged.push(r)});
 
-// Merge categories — prefer local if both exist
 const localCatMap=new Map();cats.forEach(c=>localCatMap.set(c.id,c));
 (remote.categories||[]).forEach(c=>{if(!localCatMap.has(c.id))localCatMap.set(c.id,c)});
 const mergedCats=[...localCatMap.values()];
 
-// Merge recurring — prefer local if both exist
 const localRecMap=new Map();recs.forEach(r=>localRecMap.set(r.id,r));
 (remote.recurring||[]).forEach(r=>{if(!localRecMap.has(r.id))localRecMap.set(r.id,r)});
 const mergedRecs=[...localRecMap.values()];
 
-// Save merged data locally
 for(const t of merged)await dp('transactions',t);
 for(const c of mergedCats)await dp('categories',c);
 for(const r of mergedRecs)await dp('recurring',r);
 await lAll();await lRec();
 
-// Push merged data to remote
-const payload={version:2,transactions:txs,categories:cats,recurring:recs,currency:CUR.code,lastSync:Date.now()};
-const wRes=await fetch(JBAPI+'/b/'+SYNC_BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':SYNC_KEY,'X-Bin-Versioning':'false'},body:JSON.stringify(payload)});
-if(!wRes.ok){toast('Sync write failed');return}
-
+await pushPayload();
 toast('Synced! '+txs.length+' transactions');
 rD();rTx();rCat();
 }catch(e){toast('Sync error: '+e.message)}}
 
+async function pushToCloud(){
+if(!SYNC_URL||!SYNC_ANON){toast('Set up Cloud Sync in Settings first');return}
+if(!txs.length){toast('No transactions');return}
+toast('Pushing to cloud...');
+try{
+await pushPayload();
+await dp('meta',{key:'lastBackupTime',value:Date.now()});
+document.getElementById('bkBanner').style.display='none';
+toast('☁️ Pushed to cloud — '+txs.length+' transactions');
+}catch(e){toast('Push failed: '+e.message)}}
+
+async function pushPayload(){
+const payload={version:2,transactions:txs,categories:cats,recurring:recs,currency:CUR.code,lastSync:Date.now()};
+const res=await fetch(SYNC_URL+'/rest/v1/money_tracker_sync',{method:'POST',headers:{'Content-Type':'application/json','apikey':SYNC_ANON,'Authorization':'Bearer '+SYNC_ANON,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({id:'default',data:payload,updated_at:new Date().toISOString()})});
+if(!res.ok){const err=await res.text();throw new Error(err)}}
+
+function silentCloudPush(){
+if(!SYNC_URL||!SYNC_ANON||!txs.length)return;
+pushPayload().catch(()=>{})}
+
 async function disconnectSync(){
 sCf('Disconnect Sync','Remove cloud sync? Your local data stays intact.',async()=>{
-SYNC_KEY=null;SYNC_BIN=null;
-await ddl('meta','syncKey');await ddl('meta','syncBin');
+SYNC_URL=null;SYNC_ANON=null;
+await ddl('meta','syncUrl');await ddl('meta','syncAnon');
 toast('Sync disconnected')})}
 
-// Silent push to cloud — no UI feedback, runs in background
-function silentCloudPush(){
-if(!SYNC_KEY||!SYNC_BIN||!txs.length)return;
-const payload={version:2,transactions:txs,categories:cats,recurring:recs,currency:CUR.code,lastSync:Date.now()};
-fetch(JBAPI+'/b/'+SYNC_BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':SYNC_KEY,'X-Bin-Versioning':'false'},body:JSON.stringify(payload)}).catch(()=>{})}
 
 // ===== GLOBAL SEARCH =====
 function openGlobalSearch(){
@@ -1095,6 +1066,7 @@ async function lRec(){recs=await dga('recurring')}
 
 async function processRecurring(){
 await lRec();
+console.log('Recurring templates:',recs.length);
 if(!recs.length)return;
 const today=new Date();const todayISO=tISO();
 let created=0;
@@ -1142,11 +1114,47 @@ if(!recs.length){h+='<div class="es"><div class="ic">🔁</div><p>No recurring t
 recs.forEach(r=>{const cs=getCS(r.categoryName);
 h+='<div class="csi" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="width:36px;height:36px;border-radius:10px;background:'+(r.type==='expense'?'var(--rdL)':'var(--acL)')+';display:flex;align-items:center;justify-content:center;font-size:14px">'+cs.icon+'</div><div style="flex:1"><div style="font-weight:700;font-size:14px">'+r.categoryName+(r.subcategory?' › '+r.subcategory:'')+'</div><div style="font-size:12px;color:var(--tx3)">'+fC(r.amount)+' · '+(r.frequency==='monthly'?'Monthly on '+r.dayOfMonth+getSuffix(r.dayOfMonth):'Every '+dayNames[r.dayOfWeek])+'</div></div></div>'+
 '<div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:11px;color:var(--tx3)">'+(r.merchant?r.merchant+' · ':'')+(r.active?'✅ Active':'⏸ Paused')+'</div><div style="display:flex;gap:8px">'+
+'<button class="btn bs bsm" onclick="editRec(\''+r.id+'\')">✏️</button>'+
 '<button class="btn bs bsm" onclick="toggleRec(\''+r.id+'\')">'+( r.active?'⏸ Pause':'▶ Resume')+'</button>'+
 '<button class="btn bd bsm" onclick="deleteRec(\''+r.id+'\')">🗑️</button></div></div></div>'});
 opM(h)}
 
 function getSuffix(d){if(d>=11&&d<=13)return'th';switch(d%10){case 1:return'st';case 2:return'nd';case 3:return'rd';default:return'th'}}
+
+function editRec(id){
+const r=recs.find(x=>x.id===id);if(!r)return;clM();
+const catOpts=cats.filter(c=>c.type===r.type).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>'<option value="'+c.id+'"'+(c.id===r.categoryId?' selected':'')+'>'+c.name+'</option>').join('');
+const cat=cats.find(c=>c.id===r.categoryId);
+const subOpts=cat&&cat.subs?[...cat.subs].sort((a,b)=>a.localeCompare(b)).map(s=>'<option value="'+s+'"'+(s===r.subcategory?' selected':'')+'>'+s+'</option>').join(''):'';
+const domOpts=Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'"'+((i+1)===r.dayOfMonth?' selected':'')+'>'+(i+1)+'</option>').join('');
+const dowOpts=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d,i)=>'<option value="'+i+'"'+(i===r.dayOfWeek?' selected':'')+'>'+d+'</option>').join('');
+opM('<div class="mt">Edit Recurring<button class="mx" onclick="clM()">✕</button></div>'+
+'<div class="fg"><div class="tt"><button class="tb'+(r.type==='expense'?' ae':'')+'" onclick="eRecType(\'expense\',\''+r.id+'\')">Expense</button><button class="tb'+(r.type==='income'?' ai':'')+'" onclick="eRecType(\'income\',\''+r.id+'\')">Income</button></div></div>'+
+'<div class="fg"><label class="fl">Amount</label><div class="aw"><span class="cur-prefix">'+CUR.symbol+'</span><input type="number" class="fi" id="erAmt" value="'+r.amount+'" step="0.01" inputmode="decimal"></div></div>'+
+'<div class="fg"><label class="fl">Category</label><select class="fs" id="erCat" onchange="erCatChange()">'+catOpts+'</select></div>'+
+'<div class="fg"><label class="fl">Subcategory</label><select class="fs" id="erSub"><option value="">None</option>'+subOpts+'</select></div>'+
+'<div class="fg"><label class="fl">Merchant</label><input type="text" class="fi" id="erMer" value="'+(r.merchant||'').replace(/"/g,'&quot;')+'"></div>'+
+'<div class="fg"><label class="fl">Notes</label><input type="text" class="fi" id="erNot" value="'+(r.notes||'').replace(/"/g,'&quot;')+'"></div>'+
+'<div class="fg"><label class="fl">Frequency</label><select class="fs" id="erFreq" onchange="erFreqChange()"><option value="monthly"'+(r.frequency==='monthly'?' selected':'')+'>Monthly</option><option value="weekly"'+(r.frequency==='weekly'?' selected':'')+'>Weekly</option></select></div>'+
+'<div id="erMonthly" class="fg" style="display:'+(r.frequency==='monthly'?'block':'none')+'"><label class="fl">Day of Month</label><select class="fs" id="erDom">'+domOpts+'</select></div>'+
+'<div id="erWeekly" class="fg" style="display:'+(r.frequency==='weekly'?'block':'none')+'"><label class="fl">Day of Week</label><select class="fs" id="erDow">'+dowOpts+'</select></div>'+
+'<button class="btn bp" onclick="saveEditRec(\''+r.id+'\')">Update Recurring</button>');
+window._erType=r.type}
+
+function eRecType(tp,id){window._erType=tp;const bs=document.querySelectorAll('#mCt .tt .tb');bs.forEach(b=>{b.className='tb';if(b.textContent.trim().toLowerCase()===tp)b.className='tb '+(tp==='expense'?'ae':'ai')});
+const s=document.getElementById('erCat');s.innerHTML=cats.filter(c=>c.type===tp).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');erCatChange()}
+function erCatChange(){const ci=document.getElementById('erCat').value,c=cats.find(x=>x.id===ci),s=document.getElementById('erSub');s.innerHTML='<option value="">None</option>'+(c&&c.subs?[...c.subs].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+x+'">'+x+'</option>').join(''):'')}
+function erFreqChange(){const f=document.getElementById('erFreq').value;document.getElementById('erMonthly').style.display=f==='monthly'?'block':'none';document.getElementById('erWeekly').style.display=f==='weekly'?'block':'none'}
+
+async function saveEditRec(id){
+const r=recs.find(x=>x.id===id);if(!r)return;
+const amt=parseFloat(document.getElementById('erAmt').value);
+if(!amt||amt===0){toast('Enter a valid amount');return}
+const ci=document.getElementById('erCat').value,cat=cats.find(c=>c.id===ci),sub=document.getElementById('erSub').value,mer=document.getElementById('erMer').value.trim(),not=document.getElementById('erNot').value.trim(),freq=document.getElementById('erFreq').value;
+r.type=window._erType;r.amount=Math.round(amt*100)/100;r.categoryId=ci;r.categoryName=cat?cat.name:'';r.subcategory=sub;r.merchant=mer;r.notes=not;r.frequency=freq;
+r.dayOfMonth=freq==='monthly'?parseInt(document.getElementById('erDom').value):null;
+r.dayOfWeek=freq==='weekly'?parseInt(document.getElementById('erDow').value):null;
+await dp('recurring',r);await lRec();clM();toast('Recurring updated!');openManageRecurring()}
 
 async function toggleRec(id){const r=recs.find(x=>x.id===id);if(!r)return;r.active=!r.active;await dp('recurring',r);await lRec();clM();openManageRecurring();toast(r.active?'Resumed':'Paused')}
 
