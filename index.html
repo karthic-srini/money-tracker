@@ -233,7 +233,7 @@ input[type=checkbox]:checked+span+span{left:23px !important}
 </div>
 <div id="app">
 <div class="hdr">
-<h1>💰 Money<span>Tracker</span> <span style="font-size:10px;color:var(--tx3);font-weight:400">v38</span></h1>
+<h1>💰 Money<span>Tracker</span> <span style="font-size:10px;color:var(--tx3);font-weight:400">v39</span></h1>
 <div class="hdr-acts">
 <button class="btn-gear" id="eyeBtn" onclick="toggleMask()" style="font-size:15px">🙈</button>
 <button class="btn-gear" onclick="openGlobalSearch()" style="font-size:15px">🔍</button>
@@ -986,6 +986,11 @@ function silentCloudPush(){
 if(!SYNC_URL||!SYNC_ANON||!txs.length)return;
 pushPayload().catch(()=>{})}
 
+// Silent keepalive — prevents Supabase from pausing due to inactivity
+function supabaseKeepAlive(){
+if(!SYNC_URL||!SYNC_ANON)return;
+fetch(SYNC_URL+'/rest/v1/money_tracker_sync?id=eq.default&select=id',{headers:{'apikey':SYNC_ANON,'Authorization':'Bearer '+SYNC_ANON}}).catch(()=>{})}
+
 async function disconnectSync(){
 sCf('Disconnect Sync','Remove cloud sync? Your local data stays intact.',async()=>{
 SYNC_URL=null;SYNC_ANON=null;
@@ -1196,7 +1201,7 @@ try{const m=await dg('meta','currency');if(m&&m.value&&CURS[m.value])CUR=CURS[m.
 try{const m=await dg('meta','theme');if(m&&m.value==='dark')document.documentElement.classList.add('dark')}catch(e){}
 await lAll();
 if(!cats.length){for(const c of DCAT)await dp('categories',c);await lCat()}
-updCurUI();await loadBackupSettings();await loadSyncSettings();await processRecurring();checkBackupReminder();rD()}
+updCurUI();await loadBackupSettings();await loadSyncSettings();await processRecurring();checkBackupReminder();supabaseKeepAlive();rD()}
 init().catch(e=>console.error('Init error:',e));
 </script>
 </body>
